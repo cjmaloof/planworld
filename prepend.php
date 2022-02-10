@@ -7,14 +7,11 @@
 /* error level set to ALL (inc. warnings) for debugging */
 error_reporting(E_ALL);
 
-/* turn off magic quotes (they're evil) */
-set_magic_quotes_runtime(0);
-
 /* start a session to keep localized variables */
 session_start();
 
 /* set some site-dependent constants */
-$planworld_url_base = eregi_replace("[A-z.]+$", "", $_SERVER['PHP_SELF']);
+$planworld_url_base = preg_replace('/[A-z.]+$/i', "", $_SERVER['PHP_SELF']);
 define('PW_URL_BASE', $planworld_url_base);
 define('PW_URL_INDEX', $planworld_url_base);
 unset($planworld_url_base);
@@ -45,8 +42,6 @@ require_once('auth.php');
 require_once($_base . 'lib/Online.php');
 require_once($_base . 'lib/User.php');
 
-PEAR::setErrorHandling(PEAR_ERROR_PRINT);
-
 /* set the random function to use (varies by database) */
 if (PW_DB_TYPE == 'pgsql') {
   define('PW_RANDOM_FN', 'RANDOM()');
@@ -62,7 +57,7 @@ if (isset($_SESSION['note_user'])) {
   $_user = User::factory($_SESSION['note_user']);
 
   /* update this user's last login */
-  $_user->setLastLogin(mktime());
+  $_user->setLastLogin(time());
 
   /* update this user's last known ip address */
   $_user->setLastIP($_SERVER['REMOTE_ADDR']);

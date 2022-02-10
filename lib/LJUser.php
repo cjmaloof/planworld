@@ -18,7 +18,7 @@ class LJUser extends User {
    * @public
    * @returns bool
    */
-  function LJUser ($uid) {
+  function __construct($uid) {
     $this->type = 'livejournal';
 
     $this->username = $uid;
@@ -49,7 +49,7 @@ class LJUser extends User {
    * @public
    * @returns Plan
    */
-  function displayPlan (&$user) {
+  function displayPlan (&$user, $plan = null, $ts = null) {
     $out = '<tt>';
     if (!$user->planwatch->inPlanwatch($this)) {
       $out .= "<a href=\"" . PW_URL_BASE . "add.php?add=" . $this->username . ";trans=t\" title=\"Add " . $this->username . " to my planwatch\">(Add to my planwatch)</a><br />\n";
@@ -80,7 +80,7 @@ class LJUser extends User {
    * @param user Requesting user (object)
    * @returns string
    */
-  function getPlan (&$user) {
+  function getPlan (&$user, $ts=null) {
     return $this->plan;
   }
 }

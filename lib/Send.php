@@ -11,7 +11,7 @@ class Send {
    * Return all messages between $uid and $to_uid
    */
   function getMessages ($uid, $to_uid) {
-    $dbh = Planworld::_connect();
+    $dbh = DBUtils::_connect();
 
     $query = "UPDATE send SET seen=" . mktime() . " WHERE uid={$to_uid} AND to_uid={$uid} AND seen=0";
     $dbh->query($query);
@@ -19,9 +19,9 @@ class Send {
     $query = "SELECT uid, to_uid, sent, message FROM send WHERE (uid={$uid} AND to_uid={$to_uid}) OR (uid={$to_uid} AND to_uid={$uid}) ORDER BY sent ASC";
     $result = $dbh->query($query);
 
-    if (isset($result) && !DB::isError($result)) {
+    if ($result) {
       $return = array();
-      while ($row = $result->fetchRow()) {
+      while ($row = $result->fetch()) {
         if (preg_match("/^(\[fwd:.+\])(.*)$/", $row['message'], $matches)) {
           $message = "<span class=\"forward\">{$matches[1]}</span>{$matches[2]}";
         } else {

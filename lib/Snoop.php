@@ -18,11 +18,11 @@ class Snoop {
    */
   function _call ($server, $method, $params=null) {
     return xu_rpc_http_concise(array('method' => $method,
-				     'args'   => $params, 
-				     'host'   => $server['Hostname'], 
-				     'uri'    => $server['Path'], 
-				     'port'   => $server['Port'], 
-				     'debug'  => 0)); // 0=none, 1=some, 2=more
+                                     'args'   => $params, 
+                                     'host'   => $server['Hostname'], 
+                                     'uri'    => $server['Path'], 
+                                     'port'   => $server['Port'], 
+                                     'debug'  => 0)); // 0=none, 1=some, 2=more
   }
 
   /**
@@ -42,7 +42,7 @@ class Snoop {
    * Add a snoop reference by $from for $to
    */
   function addReference ($from, $to, $date=null) {
-    $dbh = Planworld::_connect();
+    $dbh = DBUtils::_connect();
 
     if (!isset($date)) {
       $date = mktime();
@@ -61,7 +61,7 @@ class Snoop {
    * Removes a snoop reference by $from for $to
    */
   function removeReference ($from, $to) {
-    $dbh = Planworld::_connect();
+    $dbh = DBUtils::_connect();
 
     $query = "DELETE FROM snoop WHERE uid={$to} AND s_uid={$from}";
 
@@ -73,7 +73,7 @@ class Snoop {
    * Clear all snoop references by $uid
    */
   function clearReferences ($uid) {
-    $dbh = Planworld::_connect();
+    $dbh = DBUtils::_connect();
 
     $query = "DELETE FROM snoop WHERE s_uid={$uid}";
 
@@ -106,51 +106,50 @@ class Snoop {
 
     foreach ($users_to_add as $u) {
       if (strstr($u, '@')) {
-	list($username, $host) = explode('@', $u);
+        list($username, $host) = explode('@', $u);
       }
 
       $sid = Planworld::nameToID($u);
       if (!isset($host) && $sid > 0) {
-	/* valid local user */
+        /* valid local user */
 
-	Snoop::addReference($user->getUserID(), $sid);
+        Snoop::addReference($user->getUserID(), $sid);
       } else if (isset($host) && $node = Planworld::getNodeInfo($host)) {
-	/* remote planworld user */
+        /* remote planworld user */
 
-	if ($node['Version'] < 2) {
-	  Snoop::_call($node, 'snoop.addReference', array($username, $user->getUsername() . '@' . PW_NAME));
-	} else {
-	  Snoop::_call($node, 'planworld.snoop.add', array($username, $user->getUsername() . '@' . PW_NAME));
+        if ($node['Version'] < 2) {
+          Snoop::_call($node, 'snoop.addReference', array($username, $user->getUsername() . '@' . PW_NAME));
+        } else {
+          Snoop::_call($node, 'planworld.snoop.add', array($username, $user->getUsername() . '@' . PW_NAME));
         }
       }
     }
 
     foreach ($users_to_del as $u) {
       if (strstr($u, '@')) {
-	list($username, $host) = explode('@', $u);
+        list($username, $host) = explode('@', $u);
       }
 
       $sid = Planworld::nameToID($u);
       if (!isset($host) && $sid > 0) {
-	/* valid local user */
+        /* valid local user */
 
-	Snoop::removeReference($user->getUserID(), $sid);
+        Snoop::removeReference($user->getUserID(), $sid);
       } else if (isset($host) && $node = Planworld::getNodeInfo($host)) {
-	/* remote planworld user */
+        /* remote planworld user */
 
-	if ($node['Version'] < 2) {
-	  Snoop::_call($node, 'snoop.removeReference', array($username, $user->getUsername() . '@' . PW_NAME));
-	} else {
-	  Snoop::_call($node, 'planworld.snoop.remove', array($username, $user->getUsername() . '@' . PW_NAME));
-	}
+        if ($node['Version'] < 2) {
+          Snoop::_call($node, 'snoop.removeReference', array($username, $user->getUsername() . '@' . PW_NAME));
+        } else {
+          Snoop::_call($node, 'planworld.snoop.remove', array($username, $user->getUsername() . '@' . PW_NAME));
+        }
       }
     }
   }
 
-  function getReferences (&$user, $order='d', $dir='d') {
-    $dbh = Planworld::_connect();
+  static function getReferences (&$user, $order='d', $dir='d') {
+    $dbh = DBUtils::_connect();
   
-
     /* direction to sort */
     if ($dir == 'a')
       $dir = 'ASC';
@@ -179,21 +178,21 @@ class Snoop {
 
     /* execute the query */
     $result = $dbh->query($query);
-    if (isset($result) && !DB::isError($result)) {
+    if ($result) {
       $return = array();
       if (date('n-j') == '4-1') {
-	/* April fool's easter egg */
-	$uid = Planworld::getRandomUser();
-	$return[] = array("userID" => $uid,
-			  "userName" => Planworld::idToName($uid),
-			  "date" => mktime(0,0,0,4,1,date('Y')),
-			  "lastUpdate" => Planworld::getLastUpdate($uid));
+        /* April fool's easter egg */
+        $uid = Planworld::getRandomUser();
+        $return[] = array("userID" => $uid,
+                          "userName" => Planworld::idToName($uid),
+                          "date" => mktime(0,0,0,4,1,date('Y')),
+                          "lastUpdate" => Planworld::getLastUpdate($uid));
       }
-      while ($row = $result->fetchRow(DB_FETCHMODE_ASSOC)) {
-	$return[] = array("userID" => (int) $row['s_uid'],
-			  "userName" => $row['username'],
-			  "date" => (int) $row['referenced'],
-			  "lastUpdate" => (int) $row['last_update']);
+      while ($row = $result->fetch()) {
+        $return[] = array("userID" => (int) $row['s_uid'],
+                          "userName" => $row['username'],
+                          "date" => (int) $row['referenced'],
+                          "lastUpdate" => (int) $row['last_update']);
       }
       return $return;
     } else {

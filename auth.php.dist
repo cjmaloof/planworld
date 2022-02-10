@@ -10,8 +10,7 @@ require_once($_base . 'lib/Online.php');
 // systems at Amherst
 if (isset($_POST['note_user'])) {
   // log this user in
-  session_register('note_user');
-  $_SESSION['note_user'] = &$_POST['note_user'];
+  $_SESSION['note_user'] = $_POST['note_user'];
   if (!Planworld::isUser($_SESSION['note_user']))
     Planworld::addUser($_SESSION['note_user']);
 } else if (!isset($_SESSION['note_user'])) {

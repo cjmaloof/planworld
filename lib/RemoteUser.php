@@ -21,9 +21,9 @@ class RemoteUser extends User {
    * @public
    * @returns bool
    */
-  function RemoteUser ($uid, $nodeinfo=null) {
+  function __construct($uid, $nodeinfo=null) {
     /* establish a database connection */
-    $this->dbh = &Planworld::_connect();
+    $this->dbh = DBUtils::_connect();
 
     $this->type = 'planworld';
 
@@ -110,7 +110,7 @@ class RemoteUser extends User {
      * @public
      * @returns Plan
      */
-    function displayPlan ($user, $plan=null, $ts=null) {
+    function displayPlan (&$user, $plan=null, $ts=null) {
       $plan_txt = $this->getPlan($user, $ts);      
       
       $out = '';

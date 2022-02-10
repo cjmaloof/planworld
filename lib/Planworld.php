@@ -5,8 +5,8 @@
  */
 
 $_base = dirname(__FILE__) . '/../';
-require_once('DB.php');
 require_once($_base . 'config.php');
+require_once($_base . 'lib/DBUtils.php');
 /** TEMPORARY */
 require_once($_base . 'backend/epi-utils.php');
 
@@ -21,24 +21,7 @@ define('PLANWORLD_ERROR', -1);
  * General utility class for things that don't belong anywhere else
  */
 class Planworld {
-  
-  /**
-   * int Planworld::_connect ()
-   * Establish a database connection.
-   */
-  function &_connect () {
-    static $dbh;
 
-    if (!isset($dbh)) {
-      $dbh = DB::connect(PW_DB_TYPE . '://' . PW_DB_USER . ':' . PW_DB_PASS . '@' . PW_DB_HOST . '/' . PW_DB_NAME, true);
-
-      if (DB::isError($dbh)) {
-	return PLANWORLD_ERROR;
-      }
-      $dbh->setFetchMode(DB_FETCHMODE_ASSOC);
-    }
-    return $dbh;
-  }
 
   /**
    * Calls a remote method via xml-rpc.
@@ -49,11 +32,11 @@ class Planworld {
    */
   function _call ($nodeinfo, $method, $params=null) {
     return xu_rpc_http_concise(array('method' => $method,
-				     'args'   => $params, 
-				     'host'   => $nodeinfo['Hostname'], 
-				     'uri'    => $nodeinfo['Path'], 
-				     'port'   => $nodeinfo['Port'], 
-				     'debug'  => 0)); // 0=none, 1=some, 2=more
+                                     'args'   => $params, 
+                                     'host'   => $nodeinfo['Hostname'], 
+                                     'uri'    => $nodeinfo['Path'], 
+                                     'port'   => $nodeinfo['Port'], 
+                                     'debug'  => 0)); // 0=none, 1=some, 2=more
   }
 
   /**
@@ -71,12 +54,15 @@ class Planworld {
    * int Planworld::addUser ($uid)
    * adds user with name $uid; returns user id
    */
-  function addUser ($uid) {
+  static function addUser ($uid) {
     if ($uid == '') {
       return false;
     }
 
-    $dbh = &Planworld::_connect();
+    $dbh = DBUtils::_connect();
+    if (!$dbh) {
+      return PLANWORLD_ERROR;
+    }
 
     if (strstr($uid, '@')) {
       $remote = 'Y';
@@ -84,17 +70,7 @@ class Planworld {
       $remote = 'N';
     }
 
-    $id = (int) $dbh->nextId('userid');
-    $query = "INSERT INTO users (id, username, remote, first_login) VALUES ($id, '" . addslashes($uid) . "', '{$remote}', " . mktime() . ")";
-
-    /* execute the query */
-    $result = $dbh->query($query);
-    if (isset($result) && !DB::isError($result)) {
-      if ($dbh->affectedRows() < 1) return PLANWORLD_ERROR;
-      return $id;
-    } else {
-      return PLANWORLD_ERROR;
-    }
+    $id = DBUtils::insertUser($dbh, $uid, $remote);
   }
   
   /**
@@ -106,29 +82,29 @@ class Planworld {
     static $table;
 
     if (is_string($uid)) {
-      $dbh = &Planworld::_connect();
+      $dbh = DBUtils::_connect();
       
       if (isset($table[$uid])) {
-	return (int) $table[$uid];
+        return (int) $table[$uid];
       } else {
-	$query = "SELECT id FROM users WHERE username='" . addslashes($uid) . "'";
-	
-	/* execute the query */
-	$result = $dbh->query($query);
-	if (isset($result) && !DB::isError($result)) {
-	  if ($result->numRows() < 1 && strstr($uid, '@')) {
-	    // remote user (that hasn't been added yet)
-	    return Planworld::addUser($uid);
-	  } else if ($result->numRows() < 1) {
-	    return PLANWORLD_ERROR;
-	  } else {
-	    $row = $result->fetchRow();
-	    $table[$uid] = (int) $row['id'];
-	    return $table[$uid];
-	  }
-	} else {
-	  return PLANWORLD_ERROR;
-	}
+        $query = "SELECT id FROM users WHERE username='" . addslashes($uid) . "'";
+        
+        /* execute the query */
+        $result = $dbh->query($query);
+        if ($result) {
+          $row = $result->fetch();
+          if (!$row && strstr($uid, '@')) {
+            // remote user (that hasn't been added yet)
+            return Planworld::addUser($uid);
+          } else if (!$row) {
+            return PLANWORLD_ERROR;
+          } else {
+            $table[$uid] = (int) $row['id'];
+            return $table[$uid];
+          }
+        } else {
+          return PLANWORLD_ERROR;
+        }
       }
     } else {
       return PLANWORLD_ERROR;
@@ -144,23 +120,23 @@ class Planworld {
     static $table;
 
     if (is_int($uid)) {
-      $dbh = Planworld::_connect();
+      $dbh = DBUtils::_connect();
       
       if (isset($table[$uid])) {
-	return $table[$uid];
+        return $table[$uid];
       } else {
-	$query = "SELECT username FROM users WHERE id={$uid}";
+        $query = "SELECT username FROM users WHERE id={$uid}";
 
-	/* execute the query */
-	$result = $dbh->query($query);
-	if (isset($result) && !DB::isError($result)) {
-	  if ($result->numRows() < 1) return PLANWORLD_ERROR;
-	  $row = $result->fetchRow();
-	  $table[$uid] = $row['username'];
-	  return $table[$uid];
-	} else {
-	  return PLANWORLD_ERROR;
-	}
+        /* execute the query */
+        $result = $dbh->query($query);
+        if ($result) {
+          $row = $result->fetch();
+          if (!$row) return PLANWORLD_ERROR;
+          $table[$uid] = $row['username'];
+          return $table[$uid];
+        } else {
+          return PLANWORLD_ERROR;
+        }
       }
     } else {
       return PLANWORLD_ERROR;
@@ -171,41 +147,27 @@ class Planworld {
    * bool Planworld::isUser ($uid)
    * returns whether $uid is an actual user
    */
-  function isUser ($uid, $force=false) {
-    $dbh = Planworld::_connect();
+  static function isUser ($uid, $force=false) {
+    $dbh = DBUtils::_connect();
     static $table;
 
     if (isset($table[$uid]) && !$force) {
       return $table[$uid];
     }
 
-    if (is_int($uid)) {
-      $query = "SELECT COUNT(id) AS count FROM users WHERE id={$uid}";
-    } else if (is_string($uid)) {
-      $query = "SELECT COUNT(id) AS count FROM users WHERE username='" . addslashes($uid) . "'";
+    if (!DBUtils::userExists($dbh, $uid)) {
+      $table[$uid] = false;
+      return false;
     }
-
-    /* execute the query */
-    $result = $dbh->limitQuery($query,0,1);
-    $dbh->limit_from = $dbh->limit_count = null;
-    if (isset($result) && !DB::isError($result)) {
-      $row = $result->fetchRow();
-      if ($row['count'] < 1) {
-	$table[$uid] = false;
-	return false;
-      }
-      $table[$uid] = true;
-      return true;
-    } else {
-      return PLANWORLD_ERROR;
-    }
+    $table[$uid] = true;
+    return true;
   }
 
   /**
    * bool Planworld::isValidUser ($uid)
    * Returns whether $uid is a valid user
    */
-  function isValidUser ($uid) {
+  static function isValidUser ($uid) {
     return !strstr(PW_RESERVED, '|' . $uid . '|') || strstr($uid, '@');
   }
 
@@ -213,23 +175,12 @@ class Planworld {
    * bool Planworld::isRemoteUser ($uid)
    * returns whether $uid is a remote user (assuming that $uid is a valid user)
    */
-  function isRemoteUser ($uid) {
-    $dbh = Planworld::_connect();
-
-    if (is_int($uid)) {
-      $query = "SELECT remote FROM users WHERE id={$uid}";
-    } else if (is_string($uid)) {
-      $query = "SELECT remote FROM users WHERE username='" . addslashes($uid) . "'";
-    }
-
-    /* execute the query */
-    $result = $dbh->query($query);
-    if (isset($result) && !DB::isError($result)) {
-      $row = $result->fetchRow();
-      return ($row['remote'] == 'Y') ? true : false;
-    } else {
+  static function isRemoteUser ($uid) {
+    $dbh = DBUtils::_connect();
+    if (!DBUtils::userExists($dbh, $uid)) {
       return PLANWORLD_ERROR;
     }
+    return DBUtils::isRemoteUser($dbh, $uid);
   }
 
   /**
@@ -237,7 +188,7 @@ class Planworld {
    * returns whether $uid has a world-viewable plan
    */
   function isWorldViewable ($uid) {
-    $dbh = Planworld::_connect();
+    $dbh = DBUtils::_connect();
 
     if (is_int($uid)) {
       $query = "SELECT world FROM users WHERE id={$uid}";
@@ -247,8 +198,8 @@ class Planworld {
 
     /* execute the query */
     $result = $dbh->query($query);
-    if (isset($result) && !DB::isError($result)) {
-      $row = $result->fetchRow();
+    if ($result) {
+      $row = $result->fetch();
       return ($row['world'] == 'Y') ? true : false;
     } else {
       return PLANWORLD_ERROR;
@@ -269,16 +220,16 @@ class Planworld {
    * execute an arbitrary query (potentially bad)
    */
   function query ($query, $col=null) {
-    $dbh = Planworld::_connect();
+    $dbh = DBUtils::_connect();
 
     /* execute the query */
     $result = $dbh->query($query);
-    if (isset($result) && is_object($result) && !DB::isError($result)) {
+    if ($result && is_object($result)) {
       if (isset($col) && !empty($col)) {
-	$row = $result->fetchRow();
-	return $row[$col];
+        $row = $result->fetch();
+        return $row[$col];
       } else {
-	return $dbh->numRows($result);
+        return $result->rowCount();
       }
     } else {
       return PLANWORLD_ERROR;
@@ -290,15 +241,14 @@ class Planworld {
    * pick a user (with a plan) at random
    */
   function getRandomUser() {
-    $dbh = Planworld::_connect();
+    $dbh = DBUtils::_connect();
 
-    $query = "SELECT uid FROM plans ORDER BY " . PW_RANDOM_FN;
+    $query = "SELECT uid FROM plans ORDER BY " . PW_RANDOM_FN . " LIMIT 1";
 
     /* execute the query */
-    $result = $dbh->limitQuery($query,0,1);
-    $dbh->limit_from = $dbh->limit_count = null;
-    if (isset($result) && !DB::isError($result)) {
-      $row = $result->fetchRow();
+    $result = $dbh->query($query);
+    if ($result) {
+      $row = $result->fetch();
       return (int) $row['uid'];
     } else {
       return PLANWORLD_ERROR;
@@ -310,21 +260,20 @@ class Planworld {
    * Returns node information for $host.
    */
   function getNodeInfo ($host) {
-    $dbh = Planworld::_connect();
+    $dbh = DBUtils::_connect();
 
     $query = "SELECT name, hostname, path, port, version FROM nodes WHERE name='{$host}'";
 
     /* execute the query */
-    $result = $dbh->limitQuery($query,0,1);
-    $dbh->limit_from = $dbh->limit_count = null;
-    if (isset($result) && !DB::isError($result)) {
+    $result = $dbh->query($query);
+    if ($result) {
       $return = array();
-      while ($row = $result->fetchRow()) {
-	$return = array('Name' => $row['name'],
-			'Hostname' => $row['hostname'],
-			'Path' => $row['path'],
-			'Port' => (int) $row['port'],
-			'Version' => (int) $row['version']);
+      while ($row = $result->fetch()) {
+        $return = array('Name' => $row['name'],
+                        'Hostname' => $row['hostname'],
+                        'Path' => $row['path'],
+                        'Port' => (int) $row['port'],
+                        'Version' => (int) $row['version']);
       }
       return $return;
     } else {
@@ -337,20 +286,20 @@ class Planworld {
    * Return the node list.
    */
   function getNodes () {
-    $dbh = Planworld::_connect();
+    $dbh = DBUtils::_connect();
 
     $query = "SELECT name, hostname, path, port, version FROM nodes ORDER BY name";
 
     /* execute the query */
     $result = $dbh->query($query);
-    if (isset($result) && !DB::isError($result)) {
+    if ($result) {
       $return = array();
-      while ($row = $result->fetchRow()) {
-	$return[] = array('Name' => $row['name'],
-			  'Hostname' => $row['hostname'],
-			  'Path' => $row['path'],
-			  'Port' => (int) $row['port'],
-			  'Version' => (int) $row['version']);
+      while ($row = $result->fetch()) {
+        $return[] = array('Name' => $row['name'],
+                          'Hostname' => $row['hostname'],
+                          'Path' => $row['path'],
+                          'Port' => (int) $row['port'],
+                          'Version' => (int) $row['version']);
       }
       return $return;
     } else {
@@ -362,17 +311,17 @@ class Planworld {
    * array Planworld::getTimezones ()
    * Return the list of available timezones.
    */
-  function getTimezones () {
-    $dbh = Planworld::_connect();
+  static function getTimezones () {
+    $dbh = DBUtils::_connect();
 
     $query = "SELECT name FROM timezones ORDER BY name";
 
     /* execute the query */
     $result = $dbh->query($query);
-    if (isset($result) && !DB::isError($result)) {
+    if ($result) {
       $return = array();
-      while ($row = $result->fetchRow()) {
-	$return[] = $row['name'];
+      while ($row = $result->fetch()) {
+        $return[] = $row['name'];
       }
       return $return;
     } else {
@@ -384,7 +333,7 @@ class Planworld {
    * string Planworld::getDisplayDate ($ts)
    * formats timestamp $ts into a nicely readable date.
    */
-  function getDisplayDate ($ts = null, $short = false) {
+  static function getDisplayDate ($ts = null, $short = false) {
     if ($short) {
       if (!isset($ts))
         return false;
@@ -409,7 +358,7 @@ class Planworld {
     }
   }
 
-  function addLinks ($plan, $viewer, $host=null) {
+  static function addLinks ($plan, $viewer, $host=null) {
     /* auto-link links */
     $plan = preg_replace("/(^|[[:space:]\>])((https?|ftp|telnet|mailto):\/?\/?[^[:space:]]+)([[:space:]]|$)/", "\\1<a href=\"\\2\">\\2</a>\\4", $plan);
 
@@ -445,17 +394,16 @@ class Planworld {
   }
 
   function getAllUsers () {
-    $dbh = Planworld::_connect();
+    $dbh = DBUtils::_connect();
 
     $query = "SELECT username FROM users WHERE last_login!=0 AND remote='N' ORDER BY username";
 
     /* execute the query */
     $result = $dbh->query($query);
-    if (isset($result) && !DB::isError($result)) {
-      if ($dbh->numRows($result) < 1) return PLANWORLD_ERROR;
+    if ($result) {
       $return = array();
-      while ($row = $result->fetchRow()) {
-	$return[] = $row['username'];
+      while ($row = $result->fetch()) {
+        $return[] = $row['username'];
       }
       return $return;
     } else {
@@ -464,7 +412,7 @@ class Planworld {
   }
 
   function getAllUsersWithPlans ($start = null) {
-    $dbh = Planworld::_connect();
+    $dbh = DBUtils::_connect();
 
     $query = "SELECT username FROM users, plans WHERE users.id=plans.uid";
     if (isset($start)) {
@@ -477,10 +425,10 @@ class Planworld {
 
     /* execute the query */
     $result = $dbh->query($query);
-    if (isset($result) && !DB::isError($result)) {
+    if ($result) {
       $return = array();
-      while ($row = $result->fetchRow()) {
-	$return[] = $row['username'];
+      while ($row = $result->fetch()) {
+        $return[] = $row['username'];
       }
       return $return;
     } else {
@@ -492,14 +440,14 @@ class Planworld {
    * Fetch the $num most recent updates.
    */
   function getLastUpdates ($num) {
-    $dbh = Planworld::_connect();
+    $dbh = DBUtils::_connect();
 
-    $query = "SELECT username, last_update FROM users WHERE remote='N' ORDER BY last_update DESC";
+    $query = "SELECT username, last_update FROM users WHERE remote='N' ORDER BY last_update DESC LIMIT $num";
 
-    $result = $dbh->limitquery($query, 0, $num);
-    if (isset($result) && !DB::isError($result)) {
+    $result = $dbh->query($query);
+    if ($result) {
       $return = array();
-      while ($row = $result->fetchRow()) {
+      while ($row = $result->fetch()) {
         $return[] = $row;
       }
       return $return;
@@ -512,14 +460,14 @@ class Planworld {
    * Fetch the $num newest users.
    */
   function getNewUsers ($num) {
-    $dbh = Planworld::_connect();
+    $dbh = DBUtils::_connect();
 
-    $query = "SELECT username, first_login, last_update FROM users WHERE remote='N' AND last_login > 0 ORDER BY first_login DESC";
+    $query = "SELECT username, first_login, last_update FROM users WHERE remote='N' AND last_login > 0 ORDER BY first_login DESC LIMIT $num";
 
-    $result = $dbh->limitquery($query, 0, $num);
-    if (isset($result) && !DB::isError($result)) {
+    $result = $dbh->query($query);
+    if ($result) {
       $return = array();
-      while ($row = $result->fetchRow()) {
+      while ($row = $result->fetch()) {
         $return[] = $row;
       }
       return $return;
@@ -533,7 +481,7 @@ class Planworld {
    * Gets the last login time for $uid (from $host, if applicable)
    */
   function getLastLogin ($uid, $host=null) {
-    $dbh = Planworld::_connect();
+    $dbh = DBUtils::_connect();
 
     if (is_array($uid) && !isset($host)) {
       
@@ -541,31 +489,30 @@ class Planworld {
       
       /* query construction */
       if (is_int($uid[0])) {
-	/* fetch by userid */
-	$query = "SELECT id, last_login FROM users WHERE id='{$uid[0]}'";
-	for ($i=1;$i<sizeof($uid);$i++) {
-	  $query .= " OR id='{$uid[$i]}'";
-	}
+        /* fetch by userid */
+        $query = "SELECT id, last_login FROM users WHERE id='{$uid[0]}'";
+        for ($i=1;$i<sizeof($uid);$i++) {
+          $query .= " OR id='{$uid[$i]}'";
+        }
       } else {
-	/* fetch by username */
-	$query = "SELECT username as id, last_login FROM users WHERE username='{$uid[0]}'";
-	for ($i=1;$i<sizeof($uid);$i++) {
-	  $query .= " OR username='{$uid[$i]}'";
-	}
+        /* fetch by username */
+        $query = "SELECT username as id, last_login FROM users WHERE username='{$uid[0]}'";
+        for ($i=1;$i<sizeof($uid);$i++) {
+          $query .= " OR username='{$uid[$i]}'";
+        }
       }
      
       /* execute the query */
       $result = $dbh->query($query);
-      if (isset($result) && !DB::isError($result)) {
-	if ($dbh->numRows($result) < 1) return PLANWORLD_ERROR;
-	$return = array();
-	while ($row = $result->fetchRow()) {
-	  $user = $row['id'];
-	  $return[$user] = (int) $row['last_login'];
-	}
-	return $return;
+      if ($result) {
+        $return = array();
+        while ($row = $result->fetch()) {
+          $user = $row['id'];
+          $return[$user] = (int) $row['last_login'];
+        }
+        return $return;
       } else {
-	return PLANWORLD_ERROR;
+        return PLANWORLD_ERROR;
       }
  
     } else if (is_int($uid) && !isset($host)) {
@@ -576,13 +523,14 @@ class Planworld {
 
       /* execute the query */
       $result = $dbh->query($query);
-      if (isset($result) && !DB::isError($result)) {
-	if ($dbh->numRows($result) < 1) return PLANWORLD_ERROR;
-	$return = array();
-	$row = $result->fetchRow();
-	return (int) $row['last_login'];
+      if ($result) {
+        $row = $result->fetch();
+        if ($row == false) {
+          return PLANWORLD_ERROR;
+        }
+        return (int) $row['last_login'];
       } else {
-	return PLANWORLD_ERROR;
+        return PLANWORLD_ERROR;
       }
 
     } else if (is_string($uid) && !isset($host)) {
@@ -593,13 +541,11 @@ class Planworld {
 
       /* execute the query */
       $result = $dbh->query($query);
-      if (isset($result) && !DB::isError($result)) {
-	if ($dbh->numRows($result) < 1) return PLANWORLD_ERROR;
-	$return = array();
-	$row = $result->fetchRow();
-	return (int) $row['last_login'];
+      if ($result) {
+        $row = $result->fetch();
+        return (int) $row['last_login'];
       } else {
-	return PLANWORLD_ERROR;
+        return PLANWORLD_ERROR;
       }
 
     } else if ($node = Planworld::getNodeInfo($host)) {
@@ -607,25 +553,25 @@ class Planworld {
       /* remote fetch-by-username (forced) */
 
       if ($node['Version'] < 2) {
-	$result = Planworld::_call($node, 'users.getLastLogin', array($uid));
+        $result = Planworld::_call($node, 'users.getLastLogin', array($uid));
       } else {
-	$result = Planworld::_call($node, 'planworld.user.getLastLogin', array($uid));
+        $result = Planworld::_call($node, 'planworld.user.getLastLogin', array($uid));
       }
       
       if (is_array($result)) {
-	/* freshen the cache */
-	foreach ($result as $u=>$t) {
-	  Planworld::query("UPDATE users SET last_login={$t} WHERE username='{$u}@{$host}'"); 
-	}
-	
-	return $result;
+        /* freshen the cache */
+        foreach ($result as $u=>$t) {
+          Planworld::query("UPDATE users SET last_login={$t} WHERE username='{$u}@{$host}'"); 
+        }
+        
+        return $result;
       } else {
-	/* received a single value */
-	
-	/* freshen the cache */
-	Planworld::query("UPDATE users SET last_login={$result} WHERE username='{$uid}@{$host}'");
-	
-	return $result;
+        /* received a single value */
+        
+        /* freshen the cache */
+        Planworld::query("UPDATE users SET last_login={$result} WHERE username='{$uid}@{$host}'");
+        
+        return $result;
       }
       
     } else {
@@ -639,7 +585,7 @@ class Planworld {
    * Gets the last update time for $uid (from $host, if applicable)
    */
   function getLastUpdate ($uid, $host=null) {
-    $dbh = Planworld::_connect();
+    $dbh = DBUtils::_connect();
 
     if (is_array($uid) && !isset($host)) {
       
@@ -647,31 +593,30 @@ class Planworld {
       
       /* query construction */
       if (is_int($uid[0])) {
-	/* fetch by userid */
-	$query = "SELECT id, last_update FROM users WHERE id='{$uid[0]}'";
-	for ($i=1;$i<sizeof($uid);$i++) {
-	  $query .= " OR id='{$uid[$i]}'";
-	}
+        /* fetch by userid */
+        $query = "SELECT id, last_update FROM users WHERE id='{$uid[0]}'";
+        for ($i=1;$i<sizeof($uid);$i++) {
+          $query .= " OR id='{$uid[$i]}'";
+        }
       } else {
-	/* fetch by username */
-	$query = "SELECT username as id, last_update FROM users WHERE username='{$uid[0]}'";
-	for ($i=1;$i<sizeof($uid);$i++) {
-	  $query .= " OR username='{$uid[$i]}'";
-	}
+        /* fetch by username */
+        $query = "SELECT username as id, last_update FROM users WHERE username='{$uid[0]}'";
+        for ($i=1;$i<sizeof($uid);$i++) {
+          $query .= " OR username='{$uid[$i]}'";
+        }
       }
      
       /* execute the query */
       $result = $dbh->query($query);
-      if (isset($result) && !DB::isError($result)) {
-	if ($result->numRows() < 1) return PLANWORLD_ERROR;
-	$return = array();
-	while ($row = $result->fetchRow()) {
-	  $user = $row['id'];
-	  $return[$user] = (int) $row['last_update'];
-	}
-	return $return;
+      if ($result) {
+        $return = array();
+        while ($row = $result->fetch()) {
+          $user = $row['id'];
+          $return[$user] = (int) $row['last_update'];
+        }
+        return $return;
       } else {
-	return PLANWORLD_ERROR;
+        return PLANWORLD_ERROR;
       }
  
     } else if (is_int($uid) && !isset($host)) {
@@ -682,13 +627,12 @@ class Planworld {
 
       /* execute the query */
       $result = $dbh->query($query);
-      if (isset($result) && !DB::isError($result)) {
-	if ($result->numRows() < 1) return PLANWORLD_ERROR;
-	$return = array();
-	$row = $result->fetchRow();
-	return (int) $row['last_update'];
+      if ($result) {
+        $return = array();
+        $row = $result->fetch();
+        return (int) $row['last_update'];
       } else {
-	return PLANWORLD_ERROR;
+        return PLANWORLD_ERROR;
       }
 
     } else if (is_string($uid) && !isset($host)) {
@@ -699,38 +643,37 @@ class Planworld {
 
       /* execute the query */
       $result = $dbh->query($query);
-      if (isset($result) && !DB::isError($result)) {
-	if ($result->numRows() < 1) return PLANWORLD_ERROR;
-	$return = array();
-	$row = $result->fetchRow();
-	return (int) $row['last_update'];
+      if ($result) {
+        $return = array();
+        $row = $result->fetch();
+        return (int) $row['last_update'];
       } else {
-	return PLANWORLD_ERROR;
+        return PLANWORLD_ERROR;
       }
 
     } else if ($node = Planworld::getNodeInfo($host)) {
       
       /* remote fetch-by-username (forced) */
       if ($node['Version'] < 2) {
-	$result = Planworld::_call($node, 'users.getLastUpdate', array($uid));
+        $result = Planworld::_call($node, 'users.getLastUpdate', array($uid));
       } else {
-	$result = Planworld::_call($node, 'planworld.user.getLastUpdate', array($uid));
+        $result = Planworld::_call($node, 'planworld.user.getLastUpdate', array($uid));
       }
       
       if (is_array($result)) {
-	/* freshen the cache */
-	foreach ($result as $u=>$t) {
-	  Planworld::query("UPDATE users SET last_update={$t} WHERE username='{$u}@{$host}'"); 
-	}
-	
-	return $result;
+        /* freshen the cache */
+        foreach ($result as $u=>$t) {
+          Planworld::query("UPDATE users SET last_update={$t} WHERE username='{$u}@{$host}'"); 
+        }
+        
+        return $result;
       } else {
-	/* received a single value */
-	
-	/* freshen the cache */
-	Planworld::query("UPDATE users SET last_update={$result} WHERE username='{$uid}@{$host}'");
-	
-	return $result;
+        /* received a single value */
+        
+        /* freshen the cache */
+        Planworld::query("UPDATE users SET last_update={$result} WHERE username='{$uid}@{$host}'");
+        
+        return $result;
       }
       
     } else {
@@ -755,17 +698,16 @@ class Planworld {
      * Fetches a preference for this user.
      */
     function getPreference ($uid, $name) {
-      $dbh = Planworld::_connect();
+      $dbh = DBUtils::_connect();
       $query = "SELECT value FROM preferences WHERE uid={$uid} AND name='{$name}'";
       
       /* execute the query */
-      $result = $dbh->limitQuery($query,0,1);
-      $dbh->limit_from = $dbh->limit_count = null;
-      if (isset($result) && !DB::isError($result)) {
-	$row = $result->fetchRow();
-	return (isset($row['value']) ? $row['value'] : false);
+      $result = $dbh->query($query);
+      if ($result) {
+        $row = $result->fetch();
+        return (isset($row['value']) ? $row['value'] : false);
       } else {
-	return PLANWORLD_ERROR;
+        return PLANWORLD_ERROR;
       }
     }
 
@@ -774,25 +716,25 @@ class Planworld {
      */
     function getDisplayDivider ($divider, $ts = null) {
       if (isset($ts)) {
-	return preg_replace('/[Dd][Aa][Tt][Ee]\[([^\'\]]+)\]/e',"date('\\1',{$ts})",$divider);
+        return preg_replace('/[Dd][Aa][Tt][Ee]\[([^\'\]]+)\]/e',"date('\\1',{$ts})",$divider);
       } else {
-	return preg_replace('/[Dd][Aa][Tt][Ee]\[([^\'\]]+)\]/e',"date('\\1')",$divider);
+        return preg_replace('/[Dd][Aa][Tt][Ee]\[([^\'\]]+)\]/e',"date('\\1')",$divider);
       }
     }
 
     function getType ($text) {
       if (preg_match('/^\<pre\>(.*)\<\/pre\>$/misAD', $text)) {
-	return 'text';
+        return 'text';
       } else {
-	return 'html';
+        return 'html';
       }
     }
 
     function isText ($text) {
       if (Planworld::getType($text) == 'text')
-	return true;
+        return true;
       else
-	return false;
+        return false;
     }
 
     function isHTML ($text) {
@@ -801,9 +743,9 @@ class Planworld {
 
     function teaser ($text) {
       if (strlen($text) > 19)
-	return substr($text, 0, min(strpos($text, " ", 16), 32)) . "...";
+        return substr($text, 0, min(strpos($text, " ", 16), 32)) . "...";
       else
-	return $text;
+        return $text;
     }
 
 }

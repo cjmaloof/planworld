@@ -61,7 +61,7 @@ if (isset($_POST['preview'])) {
   exit();
 } else {
   /* start saving */
-  $now = mktime();
+  $now = time();
   $to_edit->setPlan($plan_display, $_POST['archive'], (isset($_POST['name']) ? $_POST['name'] : ''), $now);
   $to_edit->setLastUpdate($now);
   $to_edit->save();

@@ -2,6 +2,7 @@
 /* $Id: 1.php,v 1.4.2.2 2003/11/02 16:12:35 seth Exp $ */
 
 /* includes */
+require_once($_base . 'lib/DBUtils.php');
 require_once($_base . 'lib/Planworld.php');
 
 define('PW_SKIN_ID', 1);
@@ -15,49 +16,49 @@ class Skin {
    * string Skin::getIncludeFile ($id)
    * Returns the corresponding include for $id.
    */
-  function getIncludeFile ($id) {
+  static function getIncludeFile ($id) {
     if (is_object($id)) {
       return 'finger.inc';
     } else {
       switch (strtolower($id)) {
       case 'about':
-	return 'about.inc';
+        return 'about.inc';
       case 'prefs':
-	return 'prefs.inc';
+        return 'prefs.inc';
       case 'prefs2':
         return 'prefs2.inc';
       case 'stats':
-	return 'stats.inc';
+        return 'stats.inc';
       case 'snitch':
-	return 'snitch.inc';
+        return 'snitch.inc';
       case 'snoop':
-	return 'snoop.inc';
+        return 'snoop.inc';
       case 'edit_pw':
-	return 'planwatchedit.inc';
+        return 'planwatchedit.inc';
       case 'edit_plan':
-	return 'edit.inc';
+        return 'edit.inc';
       case 'help':
-	return 'faq.inc';
+        return 'faq.inc';
       case 'del_plan':
-	return 'delete.inc';
+        return 'delete.inc';
       case 'whois':
-	return 'whois.inc';
+        return 'whois.inc';
       case 'who':
-	return 'who.inc';
+        return 'who.inc';
       case 'last':
-	return 'last.inc';
+        return 'last.inc';
       case 'new':
-	return 'new.inc';
+        return 'new.inc';
       case 'preview':
-	return 'preview.inc';
+        return 'preview.inc';
       case 'archiving':
-	return 'archive.inc';
+        return 'archive.inc';
       case 'stuff':
-	return 'stuff.inc';
-	  case 'alumni':
-	return 'alumni.inc';
+        return 'stuff.inc';
+          case 'alumni':
+        return 'alumni.inc';
       default:
-	return 'home.inc';
+        return 'home.inc';
       }
     }
   }
@@ -66,41 +67,41 @@ class Skin {
    * string Skin::getTitleString ($id)
    * Returns the corresponding title for $id.
    */
-  function getTitleString ($id) {
+  static function getTitleString ($id) {
     if (is_object($id)) {
       return "Finger " . $id->getUsername();
     } else {
       switch (strtolower($id)) {
       case 'about':
-	return 'about';
+        return 'about';
       case 'prefs':
-	return 'change your preferences';
+        return 'change your preferences';
       case 'prefs2':
         return 'additional preferences';
       case 'stats':
-	return 'statistics';
+        return 'statistics';
       case 'snitch':
-	return 'snitch';
+        return 'snitch';
       case 'snoop':
-	return 'snoop';
+        return 'snoop';
       case 'edit_pw':
-	return 'edit your planwatch';
+        return 'edit your planwatch';
       case 'edit_plan':
-	return 'edit your plan';
+        return 'edit your plan';
       case 'help':
-	return 'frequently asked questions';
+        return 'frequently asked questions';
       case 'del_plan':
-	return 'edit your plan';
+        return 'edit your plan';
       case 'whois':
-	return 'whois';
+        return 'whois';
       case 'preview':
-	return 'preview your plan';
+        return 'preview your plan';
       case 'archiving':
-	return 'view the archives';
+        return 'view the archives';
       case 'who':
-	return 'online users';
+        return 'online users';
       case 'stuff':
-	return 'miscellaneous stuff';
+        return 'miscellaneous stuff';
       case 'last':
         return 'last';
       case 'new':
@@ -108,7 +109,7 @@ class Skin {
       case 'alumni':
         return 'move to your alumni account';
       default:
-	return 'home';
+        return 'home';
       }
     }
   }
@@ -117,15 +118,15 @@ class Skin {
    * string Skin::GetThemeDir ($tid)
    * Return the path to theme-specific stylesheets for theme $tid
    */
-  function getThemeDir ($tid) {
-    $dbh = Planworld::_connect();
+  static function getThemeDir ($tid) {
+    $dbh = DBUtils::_connect();
 
     $query = "SELECT dir FROM themes WHERE id={$tid}";
 
     /* execute the query */
     $result = $dbh->query($query);
-    if (isset($result) && !DB::isError($result)) {
-      $row = $result->fetchRow();
+    if ($result) {
+      $row = $result->fetch();
       return $row['dir'];
     } else {
       return PLANWORLD_ERROR;
@@ -136,19 +137,17 @@ class Skin {
    * array Skin::getThemeList ()
    * Returns a list of themes available for this skin.
    */
-  function getThemeList () {
-    $dbh = Planworld::_connect();
+  static function getThemeList () {
+    $dbh = DBUtils::_connect();
 
     $query = "SELECT * FROM themes WHERE skin_id=" . PW_SKIN_ID . " ORDER BY name";
 
     /* execute the query */
     $result = $dbh->query($query);
-    if (isset($result) && !DB::isError($result)) {
+    if ($result) {
       $return = array();
-      while ($row = $result->fetchRow()) {
-	$return[] = array('ID' => $row['id'],
-			  'Name' => $row['name']);
-
+      while ($row = $result->fetch()) {
+        $return[] = array('ID' => $row['id'], 'Name' => $row['name']);
       }
       return $return;
     } else {

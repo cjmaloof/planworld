@@ -13,13 +13,13 @@ require_once($_base . 'lib/Planworld.php');
 // display errors in a readable format (since this is run from cron)
 ini_set('html_errors','off');
 
-$dbh = Planworld::_connect();
+$dbh = DBUtils::_connect();
 
 $query = "SELECT DISTINCT users.username FROM planwatch, users WHERE planwatch.w_uid=users.id AND users.remote='Y'";
 $result = $dbh->query($query);
 
 $hosts = array();
-while ($row = $result->fetchRow(DB_FETCHMODE_ASSOC)) {
+while ($row = $result->fetch(DB_FETCHMODE_ASSOC)) {
   list($user, $host) = split('@', $row['username']);
   if (!in_array($host, $hosts)) $hosts[] = $host;
   if (!is_array($$host)) $$host = array();

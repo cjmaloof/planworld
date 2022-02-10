@@ -21,6 +21,7 @@ $_user->loadPlanwatch();
 
 if ($_GET) {
   $add = &$_GET['add'];
+  echo "User to add is '$add'";
   if (isset($_GET['remove']) && !empty($_GET['remove'])) {
     /* removing users; remove button was selected */
     if (is_array($add)) {
@@ -78,6 +79,6 @@ if (!isset($url)) {
   $url = PW_URL_INDEX . "?id=edit_pw";
 }
 
-header("Location: {$url}\n");
+//header("Location: {$url}\n");
 exit();
 ?>

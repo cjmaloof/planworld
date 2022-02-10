@@ -12,8 +12,7 @@ class Cookie {
    * Adds cookies to the jar.
    */
   function addCookie ($content, $author, &$submittor, $approved=false) {
-    $dbh = Planworld::_connect();
-    $id = (int) $dbh->nextId('cookies');
+    $id = getNextCookieId();
 
     $query = "INSERT INTO cookies (id, quote, author, s_uid, approved) VALUES ({$id}, '" . addslashes($content) . "', '" . addslashes($author) . "', ";
 
@@ -33,12 +32,19 @@ class Cookie {
 
     Planworld::query($query);
   }
+  
+  function getNextCookieId() {
+    $dbh = DBUtils::_connect();
+    $query = "SELECT 1 + ifnull(max(id), 0) AS id from cookies";
+    $result = $dbh->query($query);
+    return (int) $result->fetch()['id'];
+  }
 
   /**
    * Modifies cookies already in the jar.
    */
   function edit ($id, $content, $author, &$submittor, $approved=false) {
-    $dbh = Planworld::_connect();
+    $dbh = DBUtils::_connect();
 
     $query = "UPDATE cookies SET quote='" . addslashes($content) . "', author='" . addslashes($author) . "', s_uid=";
 
@@ -67,19 +73,19 @@ class Cookie {
    * array Cookie::getRandomCookie ()
    * Returns a random cookie from the (approved) selection
    */
-  function getRandomCookie () {
-    $dbh = Planworld::_connect();
+  static function getRandomCookie () {
+    $dbh = DBUtils::_connect();
 
     $query = "SELECT cookies.id, quote, author, username FROM cookies LEFT JOIN users ON cookies.s_uid=users.id WHERE approved='Y' ORDER BY " . PW_RANDOM_FN;
 
     /* execute the query */
     $result = $dbh->query($query);
-    if (isset($result) && !DB::isError($result)) {
-      $row = $result->fetchRow();
+    if ($result) {
+      $row = $result->fetch();
       return array('id' => (int) $row['id'],
-		   'quote' => $row['quote'],
-		   'author' => $row['author'],
-		   'credit' => $row['username']);
+                   'quote' => $row['quote'],
+                   'author' => $row['author'],
+                   'credit' => $row['username']);
     } else {
       return PLANWORLD_ERROR;
     } 
@@ -90,19 +96,19 @@ class Cookie {
    * Returns all cookies that have not yet been approved.
    */
   function getPendingCookies () {
-    $dbh = Planworld::_connect();
+    $dbh = DBUtils::_connect();
 
     $query = "SELECT cookies.id, quote, author, username FROM cookies LEFT JOIN users ON cookies.s_uid=users.id WHERE approved='N' ORDER BY author";
 
     /* execute the query */
     $result = $dbh->query($query);
-    if (isset($result) && !DB::isError($result)) {
+    if ($result) {
       $return = Array();
-      while ($row = $result->fetchRow()) {
-	$return[] = array('id' => $row['id'],
-			  'quote' => $row['quote'],
-			  'author' => $row['author'],
-			  'credit' => $row['username']);
+      while ($row = $result->fetch()) {
+        $return[] = array('id' => $row['id'],
+                          'quote' => $row['quote'],
+                          'author' => $row['author'],
+                          'credit' => $row['username']);
       }
       return $return;
     } else {
@@ -118,16 +124,14 @@ class Cookie {
     if (empty($list)) {
       return;
     } else {
-      $dbh = Planworld::_connect();
-
       if (is_array($list)) {
-	$query = "UPDATE cookies SET approved='Y' WHERE";
-	$query .= " id=" . $list[0]; 
-	for ($i=1;$i<count($list);$i++) {
-	  $query .= " OR id=" . $list[$i];
-	}
+        $query = "UPDATE cookies SET approved='Y' WHERE";
+        $query .= " id=" . $list[0]; 
+        for ($i=1;$i<count($list);$i++) {
+          $query .= " OR id=" . $list[$i];
+        }
       } else {
-	$query = "UPDATE cookies SET approved='Y' WHERE id={$list}";
+        $query = "UPDATE cookies SET approved='Y' WHERE id={$list}";
       }
       Planworld::query($query);
     }
@@ -141,37 +145,35 @@ class Cookie {
     if (empty($list)) {
       return;
     } else {
-      $dbh = Planworld::_connect();
-
       if (is_array($list)) {
-	$query = "DELETE FROM cookies WHERE";
-	$query .= " id=" . $list[0]; 
-	for ($i=1;$i<count($list);$i++) {
-	  $query .= " OR id=" . $list[$i];
-	}
+        $query = "DELETE FROM cookies WHERE";
+        $query .= " id=" . $list[0]; 
+        for ($i=1;$i<count($list);$i++) {
+          $query .= " OR id=" . $list[$i];
+        }
       } else {
-	$query = "DELETE FROM cookies WHERE id={$list}";
+        $query = "DELETE FROM cookies WHERE id={$list}";
       }
       Planworld::query($query);
     }
   }
 
   function get ($id) {
-    $dbh = Planworld::_connect();
+    $dbh = DBUtils::_connect();
 
     $query = "SELECT cookies.id, quote, author, username, approved FROM cookies LEFT JOIN users ON cookies.s_uid=users.id WHERE cookies.id={$id}";
 
     /* execute the query */
     $result = $dbh->query($query);
-    if (isset($result) && !DB::isError($result)) {
-      if ($row = $result->fetchRow()) {
-	return array('id' => $row['id'],
-		     'quote' => $row['quote'],
-		     'author' => $row['author'],
-		     'credit' => $row['username'],
-		     'approved' => ($row['approved'] == 'Y') ? true : false);
+    if ($result) {
+      if ($row = $result->fetch()) {
+        return array('id' => $row['id'],
+                     'quote' => $row['quote'],
+                     'author' => $row['author'],
+                     'credit' => $row['username'],
+                     'approved' => ($row['approved'] == 'Y') ? true : false);
       } else {
-	return false;
+        return false;
       }
     } else {
       return PLANWORLD_ERROR;

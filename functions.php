@@ -1034,6 +1034,7 @@ function getIncludeFile ($section) {
 	$file = 'preview.inc';
 	break;
   case 'archiving':
+  echo "hhhhhhi";
 	$file = 'archive.inc';
     break;
   default:

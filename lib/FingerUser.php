@@ -20,7 +20,7 @@ class FingerUser extends User {
    * @public
    * @returns bool
    */
-  function FingerUser ($uid) {
+  function __construct($uid) {
     $this->type = 'finger';
 
     $this->username = $uid;
@@ -72,7 +72,7 @@ class FingerUser extends User {
      * @public
      * @returns Plan
      */
-    function displayPlan ($user) {
+    function displayPlan (&$user, $plan = NULL, $ts = NULL) {
       $out = '<pre>';
       if (!$user->planwatch->inPlanwatch($this)) {
 	$out .= "<a href=\"" . PW_URL_BASE . "add.php?add=" . $this->username . ";trans=t\" title=\"Add " . $this->username . " to my planwatch\">(Add to my planwatch)</a>\n";
@@ -100,7 +100,7 @@ class FingerUser extends User {
    * @param user Requesting user (object)
    * @returns string
    */
-  function getPlan (&$user) {
+  function getPlan (&$user, $ts=null) {
     return $this->plan;
   }
 

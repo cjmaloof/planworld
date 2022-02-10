@@ -3,6 +3,7 @@
 
 /* includes */
 require_once($_base . 'lib/Archive.php');
+require_once($_base . 'lib/DBUtils.php');
 require_once($_base . 'lib/Planwatch.php');
 require_once($_base . 'lib/Planworld.php');
 require_once($_base . 'lib/FingerUser.php');
@@ -57,22 +58,22 @@ class User {
      * @static
      * @returns User
      */
-    function &factory ($uid) {
+    static function factory ($uid) {
       if (Planworld::isUser($uid) && !Planworld::isRemoteUser($uid)) {
-	return new User($uid);
+        return new User($uid);
       } else if (!Planworld::isUser($uid) && !strstr($uid, '@')) {
-      	return new User($uid);
+        return new User($uid);
       } else {
-	list(,$host) = split('@', $uid);
-	$nodeinfo = Planworld::getNodeInfo($host);
-	if (empty($nodeinfo)) {
-	  if ($host == 'livejournal.com' || $host == 'livejournal')
-	    return new LJUser($uid);
-	  else
-	    return new FingerUser($uid);
-	} else {
-	  return new RemoteUser($uid, $nodeinfo);
-	}
+        list(,$host) = split('@', $uid);
+        $nodeinfo = Planworld::getNodeInfo($host);
+        if (empty($nodeinfo)) {
+          if ($host == 'livejournal.com' || $host == 'livejournal')
+            return new LJUser($uid);
+          else
+            return new FingerUser($uid);
+        } else {
+          return new RemoteUser($uid, $nodeinfo);
+        }
       }
     }
 
@@ -82,21 +83,21 @@ class User {
      * @public
      * @returns bool
      */
-    function User ($uid) {
+    function __construct($uid) {
       /* establish a database connection */
-      $this->dbh = &Planworld::_connect();
+      $this->dbh = DBUtils::_connect();
 
       $this->type = 'local';
 
       if (is_string($uid)) {
-	$this->username = $uid;
+        $this->username = $uid;
       } else if (is_int($uid)) {
-	$this->userID = (int) $uid;
+        $this->userID = (int) $uid;
       }
       
       /* check if this user exists */
       if (isset($this->userID) || $this->isUser()) {
-	$this->load();
+        $this->load();
       }
     }
     
@@ -106,39 +107,27 @@ class User {
      * @returns bool
      */
     function load () {
-      /* Build the query */
-      $query = 'SELECT * FROM users WHERE ';
-      if (isset($this->username)) $query .= "username='" . addslashes($this->username) . "'";
-      else if (isset($this->userID)) $query .= "id='{$this->userID}'";
-      else return false;
-      
-      $result = $this->dbh->limitQuery($query,0,1);
-      $this->dbh->limit_from = $this->dbh->limit_count = null;
-      
-      if (isset($result) && !DB::isError($result)) {
-	$row = $result->fetchRow();
-	if (DB::isError($row)) return false;
-	
-	$this->userID = (int) $row['id'];
-	$this->username = $row['username'];
-	$this->remoteUser = ($row['remote'] == 'Y') ? true : false;
-	$this->world = ($row['world'] == 'Y') ? true : false;
-	$this->snitch = ($row['snitch'] == 'Y') ? true : false;
-	$this->archive = $row['archive'];
-	$this->snitchDisplayNum = $row['snitch_views'];
-	$this->views = $row['views'];
-	$this->watchOrder = $row['watch_order'];
-	$this->theme = $row['theme_id'];
-	$this->snitchEnabled = $row['snitch_activated'];
-	$this->lastLogin = $row['last_login'];
-	$this->lastUpdate = $row['last_update'];
+      $row = DBUtils::getUserRow($this->dbh, $this);
+      if ($row != false) {
+        $this->userID = (int) $row['id'];
+        $this->username = $row['username'];
+        $this->remoteUser = ($row['remote'] == 'Y') ? true : false;
+        $this->world = ($row['world'] == 'Y') ? true : false;
+        $this->snitch = ($row['snitch'] == 'Y') ? true : false;
+        $this->archive = $row['archive'];
+        $this->snitchDisplayNum = $row['snitch_views'];
+        $this->views = $row['views'];
+        $this->watchOrder = $row['watch_order'];
+        $this->theme = $row['theme_id'];
+        $this->snitchEnabled = $row['snitch_activated'];
+        $this->lastLogin = $row['last_login'];
+        $this->lastUpdate = $row['last_update'];
       } else {
-	return false;
+        return false;
       }
-      
       /* fetch miscellaneous preferences */
       if ($tz = $this->getPreference('timezone')) {
-	$this->timezone = $tz;
+        $this->timezone = $tz;
       }
 
       $this->snitchTracker = ($this->getPreference('snitchtracker') == 'true') ? true : false;
@@ -173,45 +162,14 @@ class User {
      */
     function save () {
       if ($this->changed) {
-	/* column <-> variable mapping */
-	$info = array();
-	$info['username'] = "'{$this->username}'";
-	$info['remote'] = ($this->remoteUser) ? "'Y'" : "'N'";
-	$info['world'] = ($this->world) ? "'Y'" : "'N'";
-	$info['snitch'] = ($this->snitch) ? "'Y'" : "'N'";
-	$info['snitch_views'] = &$this->snitchDisplayNum;
-	$info['archive'] = "'" . $this->archive . "'";
-	$info['watch_order'] = "'{$this->watchOrder}'";
-	$info['theme_id'] = &$this->theme;
-	$info['snitch_activated'] = &$this->snitchEnabled;
-	$info['last_login'] = &$this->lastLogin;
-	$info['last_update'] = &$this->lastUpdate;
-	$info['last_ip'] = "'{$this->last_ip}'";
-	
-	/* assemble the query */
-	$pair = array();
-	foreach ($info as $key => $value) {
-	  $pair[] = $key . '=' . $value;
-	}
-	$query = 'UPDATE users SET ';
-	$query .= implode(',', $pair);
-	if (isset($this->username)) $query .= " WHERE username='{$this->username}'";
-	else if (isset($this->userID)) $query .= " WHERE id='{$this->userID}'";
-	else return false;
-
-	/* execute the query */
-	$result = $this->dbh->query($query);
-	if (DB::isError($result)) {
-	  return false;
-	}
-	
-	/* data has now been synchronized */
-	$this->changed = false;
+        DBUtils::saveUser($this->dbh, $this);
+        /* data has now been synchronized */
+        $this->changed = false;
       }
 
       /* save any changed planwatch data if need be */
       if (isset($this->planwatch)) {
-	$this->planwatch->save();
+        $this->planwatch->save();
       }
 
       return true;
@@ -223,7 +181,7 @@ class User {
     function create () {
       /* create the user */
       if (isset($this->username))
-	$this->userID = Planworld::addUser($this->username);
+        $this->userID = Planworld::addUser($this->username);
 
       /* set the valid flag */
       $this->valid = true;
@@ -261,12 +219,12 @@ class User {
       
       $hosts = array();
       foreach ($refs[1] as $r) {
-	if (!strstr($r, '@')) continue;
-	list($user, $host) = split('@', $r);
-	if (!in_array($host, $hosts)) {
-	  $hosts[] = $host;
-	  Snoop::clearRemoteReferences(Planworld::getNodeInfo($host), $this->username);
-	}
+        if (!strstr($r, '@')) continue;
+        list($user, $host) = split('@', $r);
+        if (!in_array($host, $hosts)) {
+          $hosts[] = $host;
+          Snoop::clearRemoteReferences(Planworld::getNodeInfo($host), $this->username);
+        }
       }
     }
 
@@ -278,9 +236,9 @@ class User {
     function addSnitchView (&$user) {
       
       if ($this->snitchTracker) {
-	/* add an entry to the snitch tracker */
-	$query = "INSERT INTO snitchtracker (uid, s_uid, viewed) VALUES (" . $this->userID . ", " . $user->getUserID() . ", " . mktime() . ")";
-	$this->dbh->query($query);
+        /* add an entry to the snitch tracker */
+        $query = "INSERT INTO snitchtracker (uid, s_uid, viewed) VALUES (" . $this->userID . ", " . $user->getUserID() . ", " . mktime() . ")";
+        $this->dbh->query($query);
       }
 
       $query = "UPDATE snitch SET last_view=" . mktime() . ", views=views + 1 WHERE uid=" . $this->userID . " AND s_uid=" . $user->getUserID();
@@ -288,14 +246,14 @@ class User {
       /* attempt to execute the query */
       $result = $this->dbh->query($query);
       if (isset($result) && !DB::isError($result)) {
-	if ($this->dbh->affectedRows() < 1) {
-	  /* query failed; use this instead */
-	  $this->dbh->query("INSERT INTO snitch (uid, s_uid, last_view, views) VALUES (" . $this->userID . ", " . $user->getUserID() . ", " . mktime() . ", 1)");
-	} else {
-	  return true;
-	}
+        if ($this->dbh->affectedRows() < 1) {
+          /* query failed; use this instead */
+          $this->dbh->query("INSERT INTO snitch (uid, s_uid, last_view, views) VALUES (" . $this->userID . ", " . $user->getUserID() . ", " . mktime() . ", 1)");
+        } else {
+          return true;
+        }
       } else {
-	return PLANWORLD_ERROR;
+        return PLANWORLD_ERROR;
       }
     }
 
@@ -330,7 +288,7 @@ class User {
      */
     function isAdmin () {
       if (!isset($this->admin)) {
-	$this->admin = $this->getPreference('admin');
+        $this->admin = $this->getPreference('admin');
       }
       return $this->admin;
     }
@@ -399,11 +357,11 @@ class User {
      */
     function isSharedFor (&$uid) {
       if (is_object($uid)) {
-	$username = $uid->getUsername();
+        $username = $uid->getUsername();
       } else if (is_string($uid)) {
-	$username = $uid;
+        $username = $uid;
       } else {
-	return false;
+        return false;
       }
       return $this->getPreference('shared') && $this->getPreference('shared_' . $username);
     }
@@ -416,14 +374,14 @@ class User {
       
       /* execute the query */
       $result = $this->dbh->query($query);
-      if (isset($result) && !DB::isError($result)) {
-	$ret = '';
-	while ($row = $result->fetchRow()) {
-	  $ret .= substr($row['name'], 7) . "\n";
-	}
-	return $ret;
+      if ($result) {
+        $ret = '';
+        while ($row = $result->fetch()) {
+          $ret .= substr($row['name'], 7) . "\n";
+        }
+        return $ret;
       } else {
-	return PLANWORLD_ERROR;
+        return PLANWORLD_ERROR;
       }
     }
 
@@ -435,17 +393,17 @@ class User {
 
       /* execute the query */
       $result = $this->dbh->query($query);
-      if (isset($result) && !DB::isError($result)) {
-	$ret = array();
-	while ($row = $result->fetchRow()) {
-	  $ret[] = $row['username'];
-	}
+      if ($result) {
+        $ret = array();
+        while ($row = $result->fetch()) {
+          $ret[] = $row['username'];
+        }
         if (empty($ret))
-	  return false;
-	else
-	  return $ret;
+          return false;
+        else
+          return $ret;
       } else {
-	return false;
+        return false;
       }
     }
 
@@ -456,7 +414,7 @@ class User {
      */
     function isUser () {
       if (!isset($this->valid)) {
-	$this->valid = Planworld::isUser($this->username, true);
+        $this->valid = Planworld::isUser($this->username, true);
       }
       return $this->valid;
     }
@@ -476,7 +434,7 @@ class User {
      * @returns bool
      */
     function isNew() {
-    	return !$this->lastUpdate;
+            return !$this->lastUpdate;
     }
 
     /**
@@ -485,556 +443,556 @@ class User {
      * @returns string
      */
     function getYear() {
-    	$name = $this->username;
-		ereg("([0-9]{2})$",$name,$regs);
-		if ($regs[0] != "") return $regs[0];
-		else return "UNKNOWN";
+            $name = $this->username;
+                ereg("([0-9]{2})$",$name,$regs);
+                if ($regs[0] != "") return $regs[0];
+                else return "UNKNOWN";
     }
 
-	function hasOldUsername()
-	{
-		$oldUsernamesArray = array('NewUsername' => 'OldUsername',
-		'hmplum04' => 'hmplum03',
-		'arc' => 'npdoty',
-		'jsschmiedeskamp55' => 'JSSCHMIEDESKAMP5',
-		'flancasterraymond51' => 'FLANCASTERRAYMON',
-		'cewoolmanwashburn46' => 'CEWOOLMANWASHBU',
-		'dwalsh' => 'DCWALSH',
-		'jslouis63' => 'JSLOUIS',
-		'bhcraigen05' => 'BHCraigen06',
-		'psstatt' => 'PSSTATT78',
-		'dldix' => 'DDBECK',
-		'hwagnervosskochler87' => 'HWAGNERVOSSKOCHL',
-		'gthargreavesheald72' => 'GTHARGREAVESHEAL',
-		'keleisman05' => 'KELeisman06',
-		'phayes' => 'PWHAYES03',
-		'jslwebugamukasa70' => 'JSLWEBUGAMUKASA7',
-		'pamieczkowski' => 'PAMIECZKOWSK',
-		'tgerety' => 'TRGERETY',
-		'pmanly56' => 'PMANLY',
-		'kli05' => 'KLI06',
-		'bbarmak' => 'BEBARMAK98',
-		'jmdoyle' => 'JMDOYLE91',
-		'ajhart' => 'AJHART82',
-		'jdtang05' => 'JDTang06',
-		'RABEAUDOIN' => 'RABEAUDOIN98',
-		'jrmead' => 'JRMead04',
-		'ddhixon' => 'DDHIXON75',
-		'jaclark' => 'JCLARK',
-		'pjpowers' => 'PJPOWERS90',
-		'jaarena' => 'JAARENA83',
-		'jwmanly' => 'JWMANLY85',
-		'rhromer' => 'RHROMER52',
-		'mkomard03' => 'MKOMARD06',
-		'hlvonschmidt' => 'HLVONSCHMIDT78',
-		'tpsengupta03' => 'TPSENGUPTA',
-		'tzhou' => 'TZHOU05',
-		'jaolmos' => 'JAOLMOS05',
-		'ccobhamsande' => 'CRCOBHAM',
-		'pmiller' => 'PJBOYLE',
-		'aellis' => 'AEELLIS98',
-		'ikdamonarmstrong84' => 'IKDAMONARMSTRONG',
-		'sfkaplan' => 'SFKAPLAN95',
-		'slplatteviandier86' => 'SLPLATTEVIANDIER',
-		'ncmurray45' => 'NCMURRAY',
-		'japistel' => 'JAPISTEL69',
-		'ecsmith' => 'ECSMITH84',
-		'jddrake05' => 'JDDrake06',
-		'dahardawar' => 'DAHardawar05',
-		'tcsimoneau00' => 'TCBUCKNELLPOGUE0',
-		'ebacker' => 'EBAcker05',
-		'sggreenkyknecht83' => 'SGGREENKYKNECHT8',
-		'brblock80' => 'BRBLOCKGOTTESMAN',
-		'hgilpin' => 'HGILPIN84',
-		'aspostman90' => 'ALSIEGELPOSTMAN9',
-		'egreenbergschneide79' => 'EGREENBERGSCHNEI',
-		'kdduke' => 'KDDuke05',
-		'klfretwell' => 'KLFRETWELL81',
-		'egarespacochaga93' => 'EGARESPACOCHAGA9',
-		'jwreyes' => 'JWWOLPAW94',
-		'dmtull' => 'dmtull06',
-		'tesafronoff97' => 'TENEELAKANTAPPA9',
-		'rabinder' => 'RABinder02',
-		'mpvanhoogenstyn46' => 'MPVANHOOGENSTYN4',
-		'elnasreddinlongo85' => 'ELNASREDDINLONGO',
-		'mggamosobenhamed91' => 'MGGAMOSOBENHAMED',
-		'koedwards' => 'CMOHARA87',
-		'pdfloodradoslovich85' => 'PDFLOODRADOSLOVI',
-		'jphealy91' => '1PHEALY91',
-		'teriksen' => 'TWERIKSEN88',
-		'snstonecrivelli97' => 'SNSTONECRIVELLI9',
-		'cslifschultz93' => 'CSLIFSCHULTZ',
-		'gculucundis82' => 'GACOULOUCOUNDIS8',
-		'avennemawettick83' => 'AVENNEMAWETTICK8',
-		'rbrittenloprete90' => 'RBRITTENLOPRETE9',
-		'recorfieldmartin90' => 'RECORFIELDMARTIN',
-		'aapiccinidevelazqu90' => 'AAPICCINIDEVELAZ',
-		'djreaume' => 'DJReaume02',
-		'palohrerlefebvre88' => 'PALOHRERLEFEBVRE',
-		'msbayliss84' => 'MSBAYLISSPORTER8',
-		'hrumansbialowas83' => 'HRUMANSBIALOWAS8',
-		'hsfeinsteinthompso78' => 'HSFEINSTEINTHOMP',
-		'ewbromberg' => 'EWBromberg02',
-		'crnewman' => 'CRNEWMAN90',
-		'sjrabinowitz' => 'SJRABINOWIT',
-		'aokuasigassaway75' => 'AJKUASIGASSAWAY7',
-		'jeforman' => 'JEForman05',
-		'jmarburggoodman79' => 'JMARBURGGOODMAN7',
-		'rmchung' => 'RMChung05',
-		'kemiscallbannon88' => 'KEMISCALLBANNON8',
-		'jbbaltaxekolodner94' => 'JTBALTAXEKOLODNE',
-		'istavans' => 'ISTAVCHANSKY',
-		'racouloucoundis79' => 'RACOULOUCOUNDIS7',
-		'whpritchard' => 'WHPRITCHARD53',
-		'smstafford' => 'SMStafford05',
-		'pebendicksen78' => 'PEBENDICKSENIII7',
-		'liblackwoodellis80' => 'LIBLACKWOODELLIS',
-		'nmjohnstonbrown88' => 'NMJOHNSTONBROWN8',
-		'rcardona' => 'RCardona05',
-		'omrichards' => 'omrichards06',
-		'jbquigley' => 'JBQuigley04',
-		'recorrigan05' => 'RECorrigan06',
-		'llitchfieldkimber92' => 'LLITCHFIELDKIMBE',
-		'jrhernandezribicof87' => 'JRHERNANDEZRIBIC',
-		'hcruzhubbard93' => 'HGMORGANHUBBARD9',
-		'wmvickery' => 'WMVICKERY57',
-		'kjsanchezepp' => 'KJSANCHEZ',
-		'hmsmith' => 'HMSMITH57',
-		'kafinnertyclarke83' => 'KAFINNERTYCLARKE',
-		'acameron51' => 'ACAMERON',
-		'akramanathan' => 'AKRamanthan06',
-		'rdelacarrera' => 'RMDELACARRERA',
-		'mgandersenhunter88' => 'MGANDERSENHUNTER',
-		'ppwintersteiner64' => 'PPWINTERSTEINER6',
-		'atlichtenberger51' => 'ATLICHTENBERGER5',
-		'mrjacobsoncarroll87' => 'MRJACOBSONCARROL',
-		'wskleingoldhersz80' => 'WSKLEINGOLDHERSZ',
-		'ptlobdell' => 'PTLOBDELL68',
-		'dschatzkinhiggins76' => 'DSCHATZKINHIGGIN',
-		'aharmstrongcoben85' => 'AHARMSTRONGCOBEN',
-		'scdickman' => 'SCDICKMAN89',
-		'eballard' => 'EESWAIN95',
-		'crmartinstanley79' => 'CRMARTINSTANLEY7',
-		'igaprindashvili98' => 'IGAPRINDASHVILI9',
-		'elleggettsweeney89' => 'ELLEGGETTSWEENEY',
-		'jlhimmelstei' => 'JLHIMMELSTEIN',
-		'wlgundersheimer59' => 'WLGUNDERSHEIMER5',
-		'fwesthoff' => 'FHWESTHOFF',
-		'mwindfeldhansen78' => 'MWINDFELDHANSEN7',
-		'amiddletonbauer85' => 'AMIDDLETONBAUER8',
-		'spstockeredwards84' => 'SPSTOCKEREDWARDS',
-		'taneale' => 'TANEALE70',
-		'taehrgood' => 'TAEHRGOOD73',
-		'jbatgosgarfinkle85' => 'JBATGOSGARFINKLE',
-		'skpeck' => 'SKPECK84',
-		'dharper' => 'DVHARPER90',
-		'nghahn' => 'nghahn06',
-		'pvcornellduhoux73' => 'PVCORNELLDUHOUX7',
-		'jcrasatarainiketam98' => 'JCRASATARAINIKET',
-		'pmbrunnschweiler80' => 'PMBRUNNSCHWEILER',
-		'cytakahashi85' => 'CYTAKAHASHIKELSE',
-		'dshall' => 'DSHALL91',
-		'rmschell' => 'RMSCHELL72',
-		'eoashamu' => 'EOAshamu04',
-		'vmmccauley81' => 'VMMCCAULEY',
-		'hemyers' => 'HEMyers05',
-		'eechanlettavery96' => 'EECHANLETTAVERY9',
-		'clakor' => 'CLAKOR05',
-		'mjarp' => 'MJARP01',
-		'caciepiela' => 'CACIEPIELA83',
-		'bmrodriguezcancio94' => 'BMRODRIGUEZCANCI',
-		'tmcarter04' => 'TMCarter',
-		'dcwilson' => 'DCWILSON62',
-		'lbernerholmberg82' => 'LBERNERHOLMBERG8',
-		'pwesthoff' => 'LWESTHOFF',
-		'srpiercecoleman86' => 'SRPIERCECOLEMAN8',
-		'kcouch' => 'KCCOUCH95',
-		'psmayerammirati81' => 'PSMAYERAMMIRATI8',
-		'bamuhammad' => 'BAMUHAMMAD99',
-		'ttvonrosenvinge63' => 'TTVONROSENVINGE6',
-		'elbutlerakinyemi95' => 'ELBUTLERAKINYEMI',
-		'bpwhittenberger73' => 'BPWHITTENBERGER7',
-		'eivorychambers83' => 'EWIVORYCHAMBERS8',
-		'wpsinnottarmstrong77' => 'WPSINNOTTARMSTRO',
-		'malanningkinderman91' => 'MALANNINGKINDERM',
-		'ralopez' => 'RALOPEZ93',
-		'rjsaunderspullman87' => 'RJSAUNDERSPULLMA',
-		'rmbakeryeboa' => 'rmbakeryeboa08',
-		'speppersullivan82' => 'SPEPPERSULLIVAN8',
-		'wcboeschenstein62' => 'WCBOESCHENSTEIN6',
-		'lagomez' => 'LAGOMEZ03',
-		'jedubinsky98' => 'JEDUBINSKY95',
-		'cvhollingsworth88' => 'CVHOLLINGSWORTH8',
-		'gtmarshall80' => 'GSABESTIANTECUMA',
-		'elevisonwilliams80' => 'ELEVISONWILLIAMS',
-		'mlkopaska' => 'mlkopaska05',
-		'teconnerbernardez80' => 'TECONNERBERNARDE',
-		'jtwalker05' => 'JTWalker06',
-		'jjtrauschtvanhorn88' => 'JJTRAUSCHTVANHOR',
-		'cckaplan86' => 'CCSCHUSTER86',
-		'sesorscher05' => 'SESorscher06',
-		'coronquillo92' => 'CRONQUILLO',
-		'jaedwards' => 'JAEdwards05',
-		'cjkuipers' => 'CJKUIPERS01',
-		'ecarr' => 'EECARR',
-		'raflibotteluskow90' => 'RAFLIBOTTELUSKOW',
-		'dgwong' => 'DGWong04',
-		'rlharrisfuentes00' => 'RLHARRISFUENTES0',
-		'mpjanisaparicio82' => 'MPJANISAPARICIO8',
-		'sksoken04' => 'SKSOKEN06',
-		'jslaguilles' => 'JSLAGUILLES97',
-		'whtreseder' => 'WHTRESEDER03',
-		'mmartinezdelrio80' => 'MMARTINEZDELRIO8',
-		'jwvonderschulenbur80' => 'JWVONDERSCHULENB',
-		'idecrombrugghemcgi93' => 'IMDECROMBRUGGHE9',
-		'amiddletonmerrick87' => 'AMIDDLETONMERRIC',
-		'lggonzalezesteves84' => 'LGGONZALEZESTEVE',
-		'jrgonzalezesteves82' => 'JRGONZALEZESTEVE',
-		'fjmartinezalvarez82' => 'FJMARTINEZALVARE',
-		'imberlingerivincen88' => 'IMBERLINGERIVINC',
-		'kmchongsiriwatana00' => 'KMCHONGSIRIWATAN',
-		'sahenderson' => 'sahenderson06',
-		'samasinter' => 'SAMasinter04',
-		'rcollar' => 'rcollar06',
-		'vjbowman' => 'vjbowman06',
-		'nadahlman' => 'NADAHLMAN98',
-		'jjhkim00' => 'JJKIM00A',
-		'absanipe' => 'ABSanipe05',
-		'kwilliams' => 'KHWILLIAMS',
-		'dhylee01' => 'DHLEE01A',
-		'hleung' => 'HOLEUNG',
-		'nko' => 'nko06',
-		'mvdabova' => 'mvdabova06',
-		'splynch' => 'splynch06',
-		'lawojcik' => 'lawojcik06',
-		'ksraverta' => 'ksraverta06',
-		'sjbirnsswindlehurst' => 'sjbirnsswindle06',
-		'athadley' => 'athadley06',
-		'smmaurer' => 'smmaurer06',
-		'jneley' => 'jneley06',
-		'tshooper' => 'tshooper06',
-		'metedaldi' => 'metedaldi06',
-		'njbrewster' => 'njbrewster06',
-		'kchunt' => 'kchunt06',
-		'ashurd' => 'ashurd06',
-		'cmburnor' => 'cmburnor06',
-		'mkim' => 'mkim06',
-		'neross' => 'neross06',
-		'emscheiderer' => 'emscheiderer06',
-		'jcrucker' => 'jcrucker06',
-		'chkim' => 'chkim06',
-		'jlbuchman' => 'jlbuchman07',
-		'jbcollins05' => 'JBCOLLINS06',
-		'nhjuul' => 'NHJUUL05',
-		'ejangowski' => 'EJANGOWSKI05',
-		'slaidlaw' => 'WSLAIDLAW',
-		'ckeller' => 'CWKELLER',
-		'marx' => 'AWMARX',
-		'nnbastien' => 'NMBASTIEN',
-		'mbradbury10' => 'mbradbury09',
-		'vsochat08' => 'VVSOCHAT',
-		'sconway10' => 'sconway09',
-		'aoka' => 'aoka06',
-		'rabbey10' => 'rabbey09',
-		'semiller10' => 'smiller09',
-		'kleeroberts' => 'kmleeroberts',
-		'ccunningham' => 'CACUNNINGHAM',
-		'jdiaz10' => 'jdiaz09',
-		'ehowland' => 'bhowland',
-		'tlamkin10' => 'tlamkincarughi10',
-		'achang10' => 'achanggraham10',
-		'eleblanc' => 'EALEBLANC',
-		'lbui10' => 'ldbui',
-		'jbeyer' => 'JNBEYER',
-		'coettel10' => 'coettelflaherty10',
-		'acalderon' => 'APCALDERON',
-		'dpaula' => 'DCPAULA',
-		'gdiaz10' => 'gdiazsilveira10',
-		'ccallahan' => 'CLCALLAHAN',
-		'mgonzalez10' => 'mgonzalezhernandez10',
-		'jchisamore' => 'jmchisamore',
-		'lgaylebrissett' => 'ldgaylebr',
-		'ctarantino' => 'cntarantino',
-		'eboutilier' => 'EGBOUTILIER');
-		
-		return array_key_exists($this->username, $oldUsernamesArray);
-	}
-	
-	function oldUsername()
-	{
-		$oldUsernamesArray = array('NewUsername' => 'OldUsername',
-		'hmplum04' => 'hmplum03',
-		'arc' => 'npdoty',
-		'jsschmiedeskamp55' => 'JSSCHMIEDESKAMP5',
-		'flancasterraymond51' => 'FLANCASTERRAYMON',
-		'cewoolmanwashburn46' => 'CEWOOLMANWASHBU',
-		'dwalsh' => 'DCWALSH',
-		'jslouis63' => 'JSLOUIS',
-		'bhcraigen05' => 'BHCraigen06',
-		'psstatt' => 'PSSTATT78',
-		'dldix' => 'DDBECK',
-		'hwagnervosskochler87' => 'HWAGNERVOSSKOCHL',
-		'gthargreavesheald72' => 'GTHARGREAVESHEAL',
-		'keleisman05' => 'KELeisman06',
-		'phayes' => 'PWHAYES03',
-		'jslwebugamukasa70' => 'JSLWEBUGAMUKASA7',
-		'pamieczkowski' => 'PAMIECZKOWSK',
-		'tgerety' => 'TRGERETY',
-		'pmanly56' => 'PMANLY',
-		'kli05' => 'KLI06',
-		'bbarmak' => 'BEBARMAK98',
-		'jmdoyle' => 'JMDOYLE91',
-		'ajhart' => 'AJHART82',
-		'jdtang05' => 'JDTang06',
-		'RABEAUDOIN' => 'RABEAUDOIN98',
-		'jrmead' => 'JRMead04',
-		'ddhixon' => 'DDHIXON75',
-		'jaclark' => 'JCLARK',
-		'pjpowers' => 'PJPOWERS90',
-		'jaarena' => 'JAARENA83',
-		'jwmanly' => 'JWMANLY85',
-		'rhromer' => 'RHROMER52',
-		'mkomard03' => 'MKOMARD06',
-		'hlvonschmidt' => 'HLVONSCHMIDT78',
-		'tpsengupta03' => 'TPSENGUPTA',
-		'tzhou' => 'TZHOU05',
-		'jaolmos' => 'JAOLMOS05',
-		'ccobhamsande' => 'CRCOBHAM',
-		'pmiller' => 'PJBOYLE',
-		'aellis' => 'AEELLIS98',
-		'ikdamonarmstrong84' => 'IKDAMONARMSTRONG',
-		'sfkaplan' => 'SFKAPLAN95',
-		'slplatteviandier86' => 'SLPLATTEVIANDIER',
-		'ncmurray45' => 'NCMURRAY',
-		'japistel' => 'JAPISTEL69',
-		'ecsmith' => 'ECSMITH84',
-		'jddrake05' => 'JDDrake06',
-		'dahardawar' => 'DAHardawar05',
-		'tcsimoneau00' => 'TCBUCKNELLPOGUE0',
-		'ebacker' => 'EBAcker05',
-		'sggreenkyknecht83' => 'SGGREENKYKNECHT8',
-		'brblock80' => 'BRBLOCKGOTTESMAN',
-		'hgilpin' => 'HGILPIN84',
-		'aspostman90' => 'ALSIEGELPOSTMAN9',
-		'egreenbergschneide79' => 'EGREENBERGSCHNEI',
-		'kdduke' => 'KDDuke05',
-		'klfretwell' => 'KLFRETWELL81',
-		'egarespacochaga93' => 'EGARESPACOCHAGA9',
-		'jwreyes' => 'JWWOLPAW94',
-		'dmtull' => 'dmtull06',
-		'tesafronoff97' => 'TENEELAKANTAPPA9',
-		'rabinder' => 'RABinder02',
-		'mpvanhoogenstyn46' => 'MPVANHOOGENSTYN4',
-		'elnasreddinlongo85' => 'ELNASREDDINLONGO',
-		'mggamosobenhamed91' => 'MGGAMOSOBENHAMED',
-		'koedwards' => 'CMOHARA87',
-		'pdfloodradoslovich85' => 'PDFLOODRADOSLOVI',
-		'jphealy91' => '1PHEALY91',
-		'teriksen' => 'TWERIKSEN88',
-		'snstonecrivelli97' => 'SNSTONECRIVELLI9',
-		'cslifschultz93' => 'CSLIFSCHULTZ',
-		'gculucundis82' => 'GACOULOUCOUNDIS8',
-		'avennemawettick83' => 'AVENNEMAWETTICK8',
-		'rbrittenloprete90' => 'RBRITTENLOPRETE9',
-		'recorfieldmartin90' => 'RECORFIELDMARTIN',
-		'aapiccinidevelazqu90' => 'AAPICCINIDEVELAZ',
-		'djreaume' => 'DJReaume02',
-		'palohrerlefebvre88' => 'PALOHRERLEFEBVRE',
-		'msbayliss84' => 'MSBAYLISSPORTER8',
-		'hrumansbialowas83' => 'HRUMANSBIALOWAS8',
-		'hsfeinsteinthompso78' => 'HSFEINSTEINTHOMP',
-		'ewbromberg' => 'EWBromberg02',
-		'crnewman' => 'CRNEWMAN90',
-		'sjrabinowitz' => 'SJRABINOWIT',
-		'aokuasigassaway75' => 'AJKUASIGASSAWAY7',
-		'jeforman' => 'JEForman05',
-		'jmarburggoodman79' => 'JMARBURGGOODMAN7',
-		'rmchung' => 'RMChung05',
-		'kemiscallbannon88' => 'KEMISCALLBANNON8',
-		'jbbaltaxekolodner94' => 'JTBALTAXEKOLODNE',
-		'istavans' => 'ISTAVCHANSKY',
-		'racouloucoundis79' => 'RACOULOUCOUNDIS7',
-		'whpritchard' => 'WHPRITCHARD53',
-		'smstafford' => 'SMStafford05',
-		'pebendicksen78' => 'PEBENDICKSENIII7',
-		'liblackwoodellis80' => 'LIBLACKWOODELLIS',
-		'nmjohnstonbrown88' => 'NMJOHNSTONBROWN8',
-		'rcardona' => 'RCardona05',
-		'omrichards' => 'omrichards06',
-		'jbquigley' => 'JBQuigley04',
-		'recorrigan05' => 'RECorrigan06',
-		'llitchfieldkimber92' => 'LLITCHFIELDKIMBE',
-		'jrhernandezribicof87' => 'JRHERNANDEZRIBIC',
-		'hcruzhubbard93' => 'HGMORGANHUBBARD9',
-		'wmvickery' => 'WMVICKERY57',
-		'kjsanchezepp' => 'KJSANCHEZ',
-		'hmsmith' => 'HMSMITH57',
-		'kafinnertyclarke83' => 'KAFINNERTYCLARKE',
-		'acameron51' => 'ACAMERON',
-		'akramanathan' => 'AKRamanthan06',
-		'rdelacarrera' => 'RMDELACARRERA',
-		'mgandersenhunter88' => 'MGANDERSENHUNTER',
-		'ppwintersteiner64' => 'PPWINTERSTEINER6',
-		'atlichtenberger51' => 'ATLICHTENBERGER5',
-		'mrjacobsoncarroll87' => 'MRJACOBSONCARROL',
-		'wskleingoldhersz80' => 'WSKLEINGOLDHERSZ',
-		'ptlobdell' => 'PTLOBDELL68',
-		'dschatzkinhiggins76' => 'DSCHATZKINHIGGIN',
-		'aharmstrongcoben85' => 'AHARMSTRONGCOBEN',
-		'scdickman' => 'SCDICKMAN89',
-		'eballard' => 'EESWAIN95',
-		'crmartinstanley79' => 'CRMARTINSTANLEY7',
-		'igaprindashvili98' => 'IGAPRINDASHVILI9',
-		'elleggettsweeney89' => 'ELLEGGETTSWEENEY',
-		'jlhimmelstei' => 'JLHIMMELSTEIN',
-		'wlgundersheimer59' => 'WLGUNDERSHEIMER5',
-		'fwesthoff' => 'FHWESTHOFF',
-		'mwindfeldhansen78' => 'MWINDFELDHANSEN7',
-		'amiddletonbauer85' => 'AMIDDLETONBAUER8',
-		'spstockeredwards84' => 'SPSTOCKEREDWARDS',
-		'taneale' => 'TANEALE70',
-		'taehrgood' => 'TAEHRGOOD73',
-		'jbatgosgarfinkle85' => 'JBATGOSGARFINKLE',
-		'skpeck' => 'SKPECK84',
-		'dharper' => 'DVHARPER90',
-		'nghahn' => 'nghahn06',
-		'pvcornellduhoux73' => 'PVCORNELLDUHOUX7',
-		'jcrasatarainiketam98' => 'JCRASATARAINIKET',
-		'pmbrunnschweiler80' => 'PMBRUNNSCHWEILER',
-		'cytakahashi85' => 'CYTAKAHASHIKELSE',
-		'dshall' => 'DSHALL91',
-		'rmschell' => 'RMSCHELL72',
-		'eoashamu' => 'EOAshamu04',
-		'vmmccauley81' => 'VMMCCAULEY',
-		'hemyers' => 'HEMyers05',
-		'eechanlettavery96' => 'EECHANLETTAVERY9',
-		'clakor' => 'CLAKOR05',
-		'mjarp' => 'MJARP01',
-		'caciepiela' => 'CACIEPIELA83',
-		'bmrodriguezcancio94' => 'BMRODRIGUEZCANCI',
-		'tmcarter04' => 'TMCarter',
-		'dcwilson' => 'DCWILSON62',
-		'lbernerholmberg82' => 'LBERNERHOLMBERG8',
-		'pwesthoff' => 'LWESTHOFF',
-		'srpiercecoleman86' => 'SRPIERCECOLEMAN8',
-		'kcouch' => 'KCCOUCH95',
-		'psmayerammirati81' => 'PSMAYERAMMIRATI8',
-		'bamuhammad' => 'BAMUHAMMAD99',
-		'ttvonrosenvinge63' => 'TTVONROSENVINGE6',
-		'elbutlerakinyemi95' => 'ELBUTLERAKINYEMI',
-		'bpwhittenberger73' => 'BPWHITTENBERGER7',
-		'eivorychambers83' => 'EWIVORYCHAMBERS8',
-		'wpsinnottarmstrong77' => 'WPSINNOTTARMSTRO',
-		'malanningkinderman91' => 'MALANNINGKINDERM',
-		'ralopez' => 'RALOPEZ93',
-		'rjsaunderspullman87' => 'RJSAUNDERSPULLMA',
-		'rmbakeryeboa' => 'rmbakeryeboa08',
-		'speppersullivan82' => 'SPEPPERSULLIVAN8',
-		'wcboeschenstein62' => 'WCBOESCHENSTEIN6',
-		'lagomez' => 'LAGOMEZ03',
-		'jedubinsky98' => 'JEDUBINSKY95',
-		'cvhollingsworth88' => 'CVHOLLINGSWORTH8',
-		'gtmarshall80' => 'GSABESTIANTECUMA',
-		'elevisonwilliams80' => 'ELEVISONWILLIAMS',
-		'mlkopaska' => 'mlkopaska05',
-		'teconnerbernardez80' => 'TECONNERBERNARDE',
-		'jtwalker05' => 'JTWalker06',
-		'jjtrauschtvanhorn88' => 'JJTRAUSCHTVANHOR',
-		'cckaplan86' => 'CCSCHUSTER86',
-		'sesorscher05' => 'SESorscher06',
-		'coronquillo92' => 'CRONQUILLO',
-		'jaedwards' => 'JAEdwards05',
-		'cjkuipers' => 'CJKUIPERS01',
-		'ecarr' => 'EECARR',
-		'raflibotteluskow90' => 'RAFLIBOTTELUSKOW',
-		'dgwong' => 'DGWong04',
-		'rlharrisfuentes00' => 'RLHARRISFUENTES0',
-		'mpjanisaparicio82' => 'MPJANISAPARICIO8',
-		'sksoken04' => 'SKSOKEN06',
-		'jslaguilles' => 'JSLAGUILLES97',
-		'whtreseder' => 'WHTRESEDER03',
-		'mmartinezdelrio80' => 'MMARTINEZDELRIO8',
-		'jwvonderschulenbur80' => 'JWVONDERSCHULENB',
-		'idecrombrugghemcgi93' => 'IMDECROMBRUGGHE9',
-		'amiddletonmerrick87' => 'AMIDDLETONMERRIC',
-		'lggonzalezesteves84' => 'LGGONZALEZESTEVE',
-		'jrgonzalezesteves82' => 'JRGONZALEZESTEVE',
-		'fjmartinezalvarez82' => 'FJMARTINEZALVARE',
-		'imberlingerivincen88' => 'IMBERLINGERIVINC',
-		'kmchongsiriwatana00' => 'KMCHONGSIRIWATAN',
-		'sahenderson' => 'sahenderson06',
-		'samasinter' => 'SAMasinter04',
-		'rcollar' => 'rcollar06',
-		'vjbowman' => 'vjbowman06',
-		'nadahlman' => 'NADAHLMAN98',
-		'jjhkim00' => 'JJKIM00A',
-		'absanipe' => 'ABSanipe05',
-		'kwilliams' => 'KHWILLIAMS',
-		'dhylee01' => 'DHLEE01A',
-		'hleung' => 'HOLEUNG',
-		'nko' => 'nko06',
-		'mvdabova' => 'mvdabova06',
-		'splynch' => 'splynch06',
-		'lawojcik' => 'lawojcik06',
-		'ksraverta' => 'ksraverta06',
-		'sjbirnsswindlehurst' => 'sjbirnsswindle06',
-		'athadley' => 'athadley06',
-		'smmaurer' => 'smmaurer06',
-		'jneley' => 'jneley06',
-		'tshooper' => 'tshooper06',
-		'metedaldi' => 'metedaldi06',
-		'njbrewster' => 'njbrewster06',
-		'kchunt' => 'kchunt06',
-		'ashurd' => 'ashurd06',
-		'cmburnor' => 'cmburnor06',
-		'mkim' => 'mkim06',
-		'neross' => 'neross06',
-		'emscheiderer' => 'emscheiderer06',
-		'jcrucker' => 'jcrucker06',
-		'chkim' => 'chkim06',
-		'jlbuchman' => 'jlbuchman07',
-		'jbcollins05' => 'JBCOLLINS06',
-		'nhjuul' => 'NHJUUL05',
-		'ejangowski' => 'EJANGOWSKI05',
-		'slaidlaw' => 'WSLAIDLAW',
-		'ckeller' => 'CWKELLER',
-		'marx' => 'AWMARX',
-		'nnbastien' => 'NMBASTIEN',
-		'mbradbury10' => 'mbradbury09',
-		'vsochat08' => 'VVSOCHAT',
-		'sconway10' => 'sconway09',
-		'aoka' => 'aoka06',
-		'rabbey10' => 'rabbey09',
-		'semiller10' => 'smiller09',
-		'kleeroberts' => 'kmleeroberts',
-		'ccunningham' => 'CACUNNINGHAM',
-		'jdiaz10' => 'jdiaz09',
-		'ehowland' => 'bhowland',
-		'tlamkin10' => 'tlamkincarughi10',
-		'achang10' => 'achanggraham10',
-		'eleblanc' => 'EALEBLANC',
-		'lbui10' => 'ldbui',
-		'jbeyer' => 'JNBEYER',
-		'coettel10' => 'coettelflaherty10',
-		'acalderon' => 'APCALDERON',
-		'dpaula' => 'DCPAULA',
-		'gdiaz10' => 'gdiazsilveira10',
-		'ccallahan' => 'CLCALLAHAN',
-		'mgonzalez10' => 'mgonzalezhernandez10',
-		'jchisamore' => 'jmchisamore',
-		'lgaylebrissett' => 'ldgaylebr',
-		'ctarantino' => 'cntarantino',
-		'eboutilier' => 'EGBOUTILIER');
-		
-		if (array_key_exists($this->username, $oldUsernamesArray))
-		{
-			return $oldUsernamesArray[$this->username];
-		}
-		else
-		{
-			return "ERROR";
-		}
-	}
+        function hasOldUsername()
+        {
+                $oldUsernamesArray = array('NewUsername' => 'OldUsername',
+                'hmplum04' => 'hmplum03',
+                'arc' => 'npdoty',
+                'jsschmiedeskamp55' => 'JSSCHMIEDESKAMP5',
+                'flancasterraymond51' => 'FLANCASTERRAYMON',
+                'cewoolmanwashburn46' => 'CEWOOLMANWASHBU',
+                'dwalsh' => 'DCWALSH',
+                'jslouis63' => 'JSLOUIS',
+                'bhcraigen05' => 'BHCraigen06',
+                'psstatt' => 'PSSTATT78',
+                'dldix' => 'DDBECK',
+                'hwagnervosskochler87' => 'HWAGNERVOSSKOCHL',
+                'gthargreavesheald72' => 'GTHARGREAVESHEAL',
+                'keleisman05' => 'KELeisman06',
+                'phayes' => 'PWHAYES03',
+                'jslwebugamukasa70' => 'JSLWEBUGAMUKASA7',
+                'pamieczkowski' => 'PAMIECZKOWSK',
+                'tgerety' => 'TRGERETY',
+                'pmanly56' => 'PMANLY',
+                'kli05' => 'KLI06',
+                'bbarmak' => 'BEBARMAK98',
+                'jmdoyle' => 'JMDOYLE91',
+                'ajhart' => 'AJHART82',
+                'jdtang05' => 'JDTang06',
+                'RABEAUDOIN' => 'RABEAUDOIN98',
+                'jrmead' => 'JRMead04',
+                'ddhixon' => 'DDHIXON75',
+                'jaclark' => 'JCLARK',
+                'pjpowers' => 'PJPOWERS90',
+                'jaarena' => 'JAARENA83',
+                'jwmanly' => 'JWMANLY85',
+                'rhromer' => 'RHROMER52',
+                'mkomard03' => 'MKOMARD06',
+                'hlvonschmidt' => 'HLVONSCHMIDT78',
+                'tpsengupta03' => 'TPSENGUPTA',
+                'tzhou' => 'TZHOU05',
+                'jaolmos' => 'JAOLMOS05',
+                'ccobhamsande' => 'CRCOBHAM',
+                'pmiller' => 'PJBOYLE',
+                'aellis' => 'AEELLIS98',
+                'ikdamonarmstrong84' => 'IKDAMONARMSTRONG',
+                'sfkaplan' => 'SFKAPLAN95',
+                'slplatteviandier86' => 'SLPLATTEVIANDIER',
+                'ncmurray45' => 'NCMURRAY',
+                'japistel' => 'JAPISTEL69',
+                'ecsmith' => 'ECSMITH84',
+                'jddrake05' => 'JDDrake06',
+                'dahardawar' => 'DAHardawar05',
+                'tcsimoneau00' => 'TCBUCKNELLPOGUE0',
+                'ebacker' => 'EBAcker05',
+                'sggreenkyknecht83' => 'SGGREENKYKNECHT8',
+                'brblock80' => 'BRBLOCKGOTTESMAN',
+                'hgilpin' => 'HGILPIN84',
+                'aspostman90' => 'ALSIEGELPOSTMAN9',
+                'egreenbergschneide79' => 'EGREENBERGSCHNEI',
+                'kdduke' => 'KDDuke05',
+                'klfretwell' => 'KLFRETWELL81',
+                'egarespacochaga93' => 'EGARESPACOCHAGA9',
+                'jwreyes' => 'JWWOLPAW94',
+                'dmtull' => 'dmtull06',
+                'tesafronoff97' => 'TENEELAKANTAPPA9',
+                'rabinder' => 'RABinder02',
+                'mpvanhoogenstyn46' => 'MPVANHOOGENSTYN4',
+                'elnasreddinlongo85' => 'ELNASREDDINLONGO',
+                'mggamosobenhamed91' => 'MGGAMOSOBENHAMED',
+                'koedwards' => 'CMOHARA87',
+                'pdfloodradoslovich85' => 'PDFLOODRADOSLOVI',
+                'jphealy91' => '1PHEALY91',
+                'teriksen' => 'TWERIKSEN88',
+                'snstonecrivelli97' => 'SNSTONECRIVELLI9',
+                'cslifschultz93' => 'CSLIFSCHULTZ',
+                'gculucundis82' => 'GACOULOUCOUNDIS8',
+                'avennemawettick83' => 'AVENNEMAWETTICK8',
+                'rbrittenloprete90' => 'RBRITTENLOPRETE9',
+                'recorfieldmartin90' => 'RECORFIELDMARTIN',
+                'aapiccinidevelazqu90' => 'AAPICCINIDEVELAZ',
+                'djreaume' => 'DJReaume02',
+                'palohrerlefebvre88' => 'PALOHRERLEFEBVRE',
+                'msbayliss84' => 'MSBAYLISSPORTER8',
+                'hrumansbialowas83' => 'HRUMANSBIALOWAS8',
+                'hsfeinsteinthompso78' => 'HSFEINSTEINTHOMP',
+                'ewbromberg' => 'EWBromberg02',
+                'crnewman' => 'CRNEWMAN90',
+                'sjrabinowitz' => 'SJRABINOWIT',
+                'aokuasigassaway75' => 'AJKUASIGASSAWAY7',
+                'jeforman' => 'JEForman05',
+                'jmarburggoodman79' => 'JMARBURGGOODMAN7',
+                'rmchung' => 'RMChung05',
+                'kemiscallbannon88' => 'KEMISCALLBANNON8',
+                'jbbaltaxekolodner94' => 'JTBALTAXEKOLODNE',
+                'istavans' => 'ISTAVCHANSKY',
+                'racouloucoundis79' => 'RACOULOUCOUNDIS7',
+                'whpritchard' => 'WHPRITCHARD53',
+                'smstafford' => 'SMStafford05',
+                'pebendicksen78' => 'PEBENDICKSENIII7',
+                'liblackwoodellis80' => 'LIBLACKWOODELLIS',
+                'nmjohnstonbrown88' => 'NMJOHNSTONBROWN8',
+                'rcardona' => 'RCardona05',
+                'omrichards' => 'omrichards06',
+                'jbquigley' => 'JBQuigley04',
+                'recorrigan05' => 'RECorrigan06',
+                'llitchfieldkimber92' => 'LLITCHFIELDKIMBE',
+                'jrhernandezribicof87' => 'JRHERNANDEZRIBIC',
+                'hcruzhubbard93' => 'HGMORGANHUBBARD9',
+                'wmvickery' => 'WMVICKERY57',
+                'kjsanchezepp' => 'KJSANCHEZ',
+                'hmsmith' => 'HMSMITH57',
+                'kafinnertyclarke83' => 'KAFINNERTYCLARKE',
+                'acameron51' => 'ACAMERON',
+                'akramanathan' => 'AKRamanthan06',
+                'rdelacarrera' => 'RMDELACARRERA',
+                'mgandersenhunter88' => 'MGANDERSENHUNTER',
+                'ppwintersteiner64' => 'PPWINTERSTEINER6',
+                'atlichtenberger51' => 'ATLICHTENBERGER5',
+                'mrjacobsoncarroll87' => 'MRJACOBSONCARROL',
+                'wskleingoldhersz80' => 'WSKLEINGOLDHERSZ',
+                'ptlobdell' => 'PTLOBDELL68',
+                'dschatzkinhiggins76' => 'DSCHATZKINHIGGIN',
+                'aharmstrongcoben85' => 'AHARMSTRONGCOBEN',
+                'scdickman' => 'SCDICKMAN89',
+                'eballard' => 'EESWAIN95',
+                'crmartinstanley79' => 'CRMARTINSTANLEY7',
+                'igaprindashvili98' => 'IGAPRINDASHVILI9',
+                'elleggettsweeney89' => 'ELLEGGETTSWEENEY',
+                'jlhimmelstei' => 'JLHIMMELSTEIN',
+                'wlgundersheimer59' => 'WLGUNDERSHEIMER5',
+                'fwesthoff' => 'FHWESTHOFF',
+                'mwindfeldhansen78' => 'MWINDFELDHANSEN7',
+                'amiddletonbauer85' => 'AMIDDLETONBAUER8',
+                'spstockeredwards84' => 'SPSTOCKEREDWARDS',
+                'taneale' => 'TANEALE70',
+                'taehrgood' => 'TAEHRGOOD73',
+                'jbatgosgarfinkle85' => 'JBATGOSGARFINKLE',
+                'skpeck' => 'SKPECK84',
+                'dharper' => 'DVHARPER90',
+                'nghahn' => 'nghahn06',
+                'pvcornellduhoux73' => 'PVCORNELLDUHOUX7',
+                'jcrasatarainiketam98' => 'JCRASATARAINIKET',
+                'pmbrunnschweiler80' => 'PMBRUNNSCHWEILER',
+                'cytakahashi85' => 'CYTAKAHASHIKELSE',
+                'dshall' => 'DSHALL91',
+                'rmschell' => 'RMSCHELL72',
+                'eoashamu' => 'EOAshamu04',
+                'vmmccauley81' => 'VMMCCAULEY',
+                'hemyers' => 'HEMyers05',
+                'eechanlettavery96' => 'EECHANLETTAVERY9',
+                'clakor' => 'CLAKOR05',
+                'mjarp' => 'MJARP01',
+                'caciepiela' => 'CACIEPIELA83',
+                'bmrodriguezcancio94' => 'BMRODRIGUEZCANCI',
+                'tmcarter04' => 'TMCarter',
+                'dcwilson' => 'DCWILSON62',
+                'lbernerholmberg82' => 'LBERNERHOLMBERG8',
+                'pwesthoff' => 'LWESTHOFF',
+                'srpiercecoleman86' => 'SRPIERCECOLEMAN8',
+                'kcouch' => 'KCCOUCH95',
+                'psmayerammirati81' => 'PSMAYERAMMIRATI8',
+                'bamuhammad' => 'BAMUHAMMAD99',
+                'ttvonrosenvinge63' => 'TTVONROSENVINGE6',
+                'elbutlerakinyemi95' => 'ELBUTLERAKINYEMI',
+                'bpwhittenberger73' => 'BPWHITTENBERGER7',
+                'eivorychambers83' => 'EWIVORYCHAMBERS8',
+                'wpsinnottarmstrong77' => 'WPSINNOTTARMSTRO',
+                'malanningkinderman91' => 'MALANNINGKINDERM',
+                'ralopez' => 'RALOPEZ93',
+                'rjsaunderspullman87' => 'RJSAUNDERSPULLMA',
+                'rmbakeryeboa' => 'rmbakeryeboa08',
+                'speppersullivan82' => 'SPEPPERSULLIVAN8',
+                'wcboeschenstein62' => 'WCBOESCHENSTEIN6',
+                'lagomez' => 'LAGOMEZ03',
+                'jedubinsky98' => 'JEDUBINSKY95',
+                'cvhollingsworth88' => 'CVHOLLINGSWORTH8',
+                'gtmarshall80' => 'GSABESTIANTECUMA',
+                'elevisonwilliams80' => 'ELEVISONWILLIAMS',
+                'mlkopaska' => 'mlkopaska05',
+                'teconnerbernardez80' => 'TECONNERBERNARDE',
+                'jtwalker05' => 'JTWalker06',
+                'jjtrauschtvanhorn88' => 'JJTRAUSCHTVANHOR',
+                'cckaplan86' => 'CCSCHUSTER86',
+                'sesorscher05' => 'SESorscher06',
+                'coronquillo92' => 'CRONQUILLO',
+                'jaedwards' => 'JAEdwards05',
+                'cjkuipers' => 'CJKUIPERS01',
+                'ecarr' => 'EECARR',
+                'raflibotteluskow90' => 'RAFLIBOTTELUSKOW',
+                'dgwong' => 'DGWong04',
+                'rlharrisfuentes00' => 'RLHARRISFUENTES0',
+                'mpjanisaparicio82' => 'MPJANISAPARICIO8',
+                'sksoken04' => 'SKSOKEN06',
+                'jslaguilles' => 'JSLAGUILLES97',
+                'whtreseder' => 'WHTRESEDER03',
+                'mmartinezdelrio80' => 'MMARTINEZDELRIO8',
+                'jwvonderschulenbur80' => 'JWVONDERSCHULENB',
+                'idecrombrugghemcgi93' => 'IMDECROMBRUGGHE9',
+                'amiddletonmerrick87' => 'AMIDDLETONMERRIC',
+                'lggonzalezesteves84' => 'LGGONZALEZESTEVE',
+                'jrgonzalezesteves82' => 'JRGONZALEZESTEVE',
+                'fjmartinezalvarez82' => 'FJMARTINEZALVARE',
+                'imberlingerivincen88' => 'IMBERLINGERIVINC',
+                'kmchongsiriwatana00' => 'KMCHONGSIRIWATAN',
+                'sahenderson' => 'sahenderson06',
+                'samasinter' => 'SAMasinter04',
+                'rcollar' => 'rcollar06',
+                'vjbowman' => 'vjbowman06',
+                'nadahlman' => 'NADAHLMAN98',
+                'jjhkim00' => 'JJKIM00A',
+                'absanipe' => 'ABSanipe05',
+                'kwilliams' => 'KHWILLIAMS',
+                'dhylee01' => 'DHLEE01A',
+                'hleung' => 'HOLEUNG',
+                'nko' => 'nko06',
+                'mvdabova' => 'mvdabova06',
+                'splynch' => 'splynch06',
+                'lawojcik' => 'lawojcik06',
+                'ksraverta' => 'ksraverta06',
+                'sjbirnsswindlehurst' => 'sjbirnsswindle06',
+                'athadley' => 'athadley06',
+                'smmaurer' => 'smmaurer06',
+                'jneley' => 'jneley06',
+                'tshooper' => 'tshooper06',
+                'metedaldi' => 'metedaldi06',
+                'njbrewster' => 'njbrewster06',
+                'kchunt' => 'kchunt06',
+                'ashurd' => 'ashurd06',
+                'cmburnor' => 'cmburnor06',
+                'mkim' => 'mkim06',
+                'neross' => 'neross06',
+                'emscheiderer' => 'emscheiderer06',
+                'jcrucker' => 'jcrucker06',
+                'chkim' => 'chkim06',
+                'jlbuchman' => 'jlbuchman07',
+                'jbcollins05' => 'JBCOLLINS06',
+                'nhjuul' => 'NHJUUL05',
+                'ejangowski' => 'EJANGOWSKI05',
+                'slaidlaw' => 'WSLAIDLAW',
+                'ckeller' => 'CWKELLER',
+                'marx' => 'AWMARX',
+                'nnbastien' => 'NMBASTIEN',
+                'mbradbury10' => 'mbradbury09',
+                'vsochat08' => 'VVSOCHAT',
+                'sconway10' => 'sconway09',
+                'aoka' => 'aoka06',
+                'rabbey10' => 'rabbey09',
+                'semiller10' => 'smiller09',
+                'kleeroberts' => 'kmleeroberts',
+                'ccunningham' => 'CACUNNINGHAM',
+                'jdiaz10' => 'jdiaz09',
+                'ehowland' => 'bhowland',
+                'tlamkin10' => 'tlamkincarughi10',
+                'achang10' => 'achanggraham10',
+                'eleblanc' => 'EALEBLANC',
+                'lbui10' => 'ldbui',
+                'jbeyer' => 'JNBEYER',
+                'coettel10' => 'coettelflaherty10',
+                'acalderon' => 'APCALDERON',
+                'dpaula' => 'DCPAULA',
+                'gdiaz10' => 'gdiazsilveira10',
+                'ccallahan' => 'CLCALLAHAN',
+                'mgonzalez10' => 'mgonzalezhernandez10',
+                'jchisamore' => 'jmchisamore',
+                'lgaylebrissett' => 'ldgaylebr',
+                'ctarantino' => 'cntarantino',
+                'eboutilier' => 'EGBOUTILIER');
+                
+                return array_key_exists($this->username, $oldUsernamesArray);
+        }
+        
+        function oldUsername()
+        {
+                $oldUsernamesArray = array('NewUsername' => 'OldUsername',
+                'hmplum04' => 'hmplum03',
+                'arc' => 'npdoty',
+                'jsschmiedeskamp55' => 'JSSCHMIEDESKAMP5',
+                'flancasterraymond51' => 'FLANCASTERRAYMON',
+                'cewoolmanwashburn46' => 'CEWOOLMANWASHBU',
+                'dwalsh' => 'DCWALSH',
+                'jslouis63' => 'JSLOUIS',
+                'bhcraigen05' => 'BHCraigen06',
+                'psstatt' => 'PSSTATT78',
+                'dldix' => 'DDBECK',
+                'hwagnervosskochler87' => 'HWAGNERVOSSKOCHL',
+                'gthargreavesheald72' => 'GTHARGREAVESHEAL',
+                'keleisman05' => 'KELeisman06',
+                'phayes' => 'PWHAYES03',
+                'jslwebugamukasa70' => 'JSLWEBUGAMUKASA7',
+                'pamieczkowski' => 'PAMIECZKOWSK',
+                'tgerety' => 'TRGERETY',
+                'pmanly56' => 'PMANLY',
+                'kli05' => 'KLI06',
+                'bbarmak' => 'BEBARMAK98',
+                'jmdoyle' => 'JMDOYLE91',
+                'ajhart' => 'AJHART82',
+                'jdtang05' => 'JDTang06',
+                'RABEAUDOIN' => 'RABEAUDOIN98',
+                'jrmead' => 'JRMead04',
+                'ddhixon' => 'DDHIXON75',
+                'jaclark' => 'JCLARK',
+                'pjpowers' => 'PJPOWERS90',
+                'jaarena' => 'JAARENA83',
+                'jwmanly' => 'JWMANLY85',
+                'rhromer' => 'RHROMER52',
+                'mkomard03' => 'MKOMARD06',
+                'hlvonschmidt' => 'HLVONSCHMIDT78',
+                'tpsengupta03' => 'TPSENGUPTA',
+                'tzhou' => 'TZHOU05',
+                'jaolmos' => 'JAOLMOS05',
+                'ccobhamsande' => 'CRCOBHAM',
+                'pmiller' => 'PJBOYLE',
+                'aellis' => 'AEELLIS98',
+                'ikdamonarmstrong84' => 'IKDAMONARMSTRONG',
+                'sfkaplan' => 'SFKAPLAN95',
+                'slplatteviandier86' => 'SLPLATTEVIANDIER',
+                'ncmurray45' => 'NCMURRAY',
+                'japistel' => 'JAPISTEL69',
+                'ecsmith' => 'ECSMITH84',
+                'jddrake05' => 'JDDrake06',
+                'dahardawar' => 'DAHardawar05',
+                'tcsimoneau00' => 'TCBUCKNELLPOGUE0',
+                'ebacker' => 'EBAcker05',
+                'sggreenkyknecht83' => 'SGGREENKYKNECHT8',
+                'brblock80' => 'BRBLOCKGOTTESMAN',
+                'hgilpin' => 'HGILPIN84',
+                'aspostman90' => 'ALSIEGELPOSTMAN9',
+                'egreenbergschneide79' => 'EGREENBERGSCHNEI',
+                'kdduke' => 'KDDuke05',
+                'klfretwell' => 'KLFRETWELL81',
+                'egarespacochaga93' => 'EGARESPACOCHAGA9',
+                'jwreyes' => 'JWWOLPAW94',
+                'dmtull' => 'dmtull06',
+                'tesafronoff97' => 'TENEELAKANTAPPA9',
+                'rabinder' => 'RABinder02',
+                'mpvanhoogenstyn46' => 'MPVANHOOGENSTYN4',
+                'elnasreddinlongo85' => 'ELNASREDDINLONGO',
+                'mggamosobenhamed91' => 'MGGAMOSOBENHAMED',
+                'koedwards' => 'CMOHARA87',
+                'pdfloodradoslovich85' => 'PDFLOODRADOSLOVI',
+                'jphealy91' => '1PHEALY91',
+                'teriksen' => 'TWERIKSEN88',
+                'snstonecrivelli97' => 'SNSTONECRIVELLI9',
+                'cslifschultz93' => 'CSLIFSCHULTZ',
+                'gculucundis82' => 'GACOULOUCOUNDIS8',
+                'avennemawettick83' => 'AVENNEMAWETTICK8',
+                'rbrittenloprete90' => 'RBRITTENLOPRETE9',
+                'recorfieldmartin90' => 'RECORFIELDMARTIN',
+                'aapiccinidevelazqu90' => 'AAPICCINIDEVELAZ',
+                'djreaume' => 'DJReaume02',
+                'palohrerlefebvre88' => 'PALOHRERLEFEBVRE',
+                'msbayliss84' => 'MSBAYLISSPORTER8',
+                'hrumansbialowas83' => 'HRUMANSBIALOWAS8',
+                'hsfeinsteinthompso78' => 'HSFEINSTEINTHOMP',
+                'ewbromberg' => 'EWBromberg02',
+                'crnewman' => 'CRNEWMAN90',
+                'sjrabinowitz' => 'SJRABINOWIT',
+                'aokuasigassaway75' => 'AJKUASIGASSAWAY7',
+                'jeforman' => 'JEForman05',
+                'jmarburggoodman79' => 'JMARBURGGOODMAN7',
+                'rmchung' => 'RMChung05',
+                'kemiscallbannon88' => 'KEMISCALLBANNON8',
+                'jbbaltaxekolodner94' => 'JTBALTAXEKOLODNE',
+                'istavans' => 'ISTAVCHANSKY',
+                'racouloucoundis79' => 'RACOULOUCOUNDIS7',
+                'whpritchard' => 'WHPRITCHARD53',
+                'smstafford' => 'SMStafford05',
+                'pebendicksen78' => 'PEBENDICKSENIII7',
+                'liblackwoodellis80' => 'LIBLACKWOODELLIS',
+                'nmjohnstonbrown88' => 'NMJOHNSTONBROWN8',
+                'rcardona' => 'RCardona05',
+                'omrichards' => 'omrichards06',
+                'jbquigley' => 'JBQuigley04',
+                'recorrigan05' => 'RECorrigan06',
+                'llitchfieldkimber92' => 'LLITCHFIELDKIMBE',
+                'jrhernandezribicof87' => 'JRHERNANDEZRIBIC',
+                'hcruzhubbard93' => 'HGMORGANHUBBARD9',
+                'wmvickery' => 'WMVICKERY57',
+                'kjsanchezepp' => 'KJSANCHEZ',
+                'hmsmith' => 'HMSMITH57',
+                'kafinnertyclarke83' => 'KAFINNERTYCLARKE',
+                'acameron51' => 'ACAMERON',
+                'akramanathan' => 'AKRamanthan06',
+                'rdelacarrera' => 'RMDELACARRERA',
+                'mgandersenhunter88' => 'MGANDERSENHUNTER',
+                'ppwintersteiner64' => 'PPWINTERSTEINER6',
+                'atlichtenberger51' => 'ATLICHTENBERGER5',
+                'mrjacobsoncarroll87' => 'MRJACOBSONCARROL',
+                'wskleingoldhersz80' => 'WSKLEINGOLDHERSZ',
+                'ptlobdell' => 'PTLOBDELL68',
+                'dschatzkinhiggins76' => 'DSCHATZKINHIGGIN',
+                'aharmstrongcoben85' => 'AHARMSTRONGCOBEN',
+                'scdickman' => 'SCDICKMAN89',
+                'eballard' => 'EESWAIN95',
+                'crmartinstanley79' => 'CRMARTINSTANLEY7',
+                'igaprindashvili98' => 'IGAPRINDASHVILI9',
+                'elleggettsweeney89' => 'ELLEGGETTSWEENEY',
+                'jlhimmelstei' => 'JLHIMMELSTEIN',
+                'wlgundersheimer59' => 'WLGUNDERSHEIMER5',
+                'fwesthoff' => 'FHWESTHOFF',
+                'mwindfeldhansen78' => 'MWINDFELDHANSEN7',
+                'amiddletonbauer85' => 'AMIDDLETONBAUER8',
+                'spstockeredwards84' => 'SPSTOCKEREDWARDS',
+                'taneale' => 'TANEALE70',
+                'taehrgood' => 'TAEHRGOOD73',
+                'jbatgosgarfinkle85' => 'JBATGOSGARFINKLE',
+                'skpeck' => 'SKPECK84',
+                'dharper' => 'DVHARPER90',
+                'nghahn' => 'nghahn06',
+                'pvcornellduhoux73' => 'PVCORNELLDUHOUX7',
+                'jcrasatarainiketam98' => 'JCRASATARAINIKET',
+                'pmbrunnschweiler80' => 'PMBRUNNSCHWEILER',
+                'cytakahashi85' => 'CYTAKAHASHIKELSE',
+                'dshall' => 'DSHALL91',
+                'rmschell' => 'RMSCHELL72',
+                'eoashamu' => 'EOAshamu04',
+                'vmmccauley81' => 'VMMCCAULEY',
+                'hemyers' => 'HEMyers05',
+                'eechanlettavery96' => 'EECHANLETTAVERY9',
+                'clakor' => 'CLAKOR05',
+                'mjarp' => 'MJARP01',
+                'caciepiela' => 'CACIEPIELA83',
+                'bmrodriguezcancio94' => 'BMRODRIGUEZCANCI',
+                'tmcarter04' => 'TMCarter',
+                'dcwilson' => 'DCWILSON62',
+                'lbernerholmberg82' => 'LBERNERHOLMBERG8',
+                'pwesthoff' => 'LWESTHOFF',
+                'srpiercecoleman86' => 'SRPIERCECOLEMAN8',
+                'kcouch' => 'KCCOUCH95',
+                'psmayerammirati81' => 'PSMAYERAMMIRATI8',
+                'bamuhammad' => 'BAMUHAMMAD99',
+                'ttvonrosenvinge63' => 'TTVONROSENVINGE6',
+                'elbutlerakinyemi95' => 'ELBUTLERAKINYEMI',
+                'bpwhittenberger73' => 'BPWHITTENBERGER7',
+                'eivorychambers83' => 'EWIVORYCHAMBERS8',
+                'wpsinnottarmstrong77' => 'WPSINNOTTARMSTRO',
+                'malanningkinderman91' => 'MALANNINGKINDERM',
+                'ralopez' => 'RALOPEZ93',
+                'rjsaunderspullman87' => 'RJSAUNDERSPULLMA',
+                'rmbakeryeboa' => 'rmbakeryeboa08',
+                'speppersullivan82' => 'SPEPPERSULLIVAN8',
+                'wcboeschenstein62' => 'WCBOESCHENSTEIN6',
+                'lagomez' => 'LAGOMEZ03',
+                'jedubinsky98' => 'JEDUBINSKY95',
+                'cvhollingsworth88' => 'CVHOLLINGSWORTH8',
+                'gtmarshall80' => 'GSABESTIANTECUMA',
+                'elevisonwilliams80' => 'ELEVISONWILLIAMS',
+                'mlkopaska' => 'mlkopaska05',
+                'teconnerbernardez80' => 'TECONNERBERNARDE',
+                'jtwalker05' => 'JTWalker06',
+                'jjtrauschtvanhorn88' => 'JJTRAUSCHTVANHOR',
+                'cckaplan86' => 'CCSCHUSTER86',
+                'sesorscher05' => 'SESorscher06',
+                'coronquillo92' => 'CRONQUILLO',
+                'jaedwards' => 'JAEdwards05',
+                'cjkuipers' => 'CJKUIPERS01',
+                'ecarr' => 'EECARR',
+                'raflibotteluskow90' => 'RAFLIBOTTELUSKOW',
+                'dgwong' => 'DGWong04',
+                'rlharrisfuentes00' => 'RLHARRISFUENTES0',
+                'mpjanisaparicio82' => 'MPJANISAPARICIO8',
+                'sksoken04' => 'SKSOKEN06',
+                'jslaguilles' => 'JSLAGUILLES97',
+                'whtreseder' => 'WHTRESEDER03',
+                'mmartinezdelrio80' => 'MMARTINEZDELRIO8',
+                'jwvonderschulenbur80' => 'JWVONDERSCHULENB',
+                'idecrombrugghemcgi93' => 'IMDECROMBRUGGHE9',
+                'amiddletonmerrick87' => 'AMIDDLETONMERRIC',
+                'lggonzalezesteves84' => 'LGGONZALEZESTEVE',
+                'jrgonzalezesteves82' => 'JRGONZALEZESTEVE',
+                'fjmartinezalvarez82' => 'FJMARTINEZALVARE',
+                'imberlingerivincen88' => 'IMBERLINGERIVINC',
+                'kmchongsiriwatana00' => 'KMCHONGSIRIWATAN',
+                'sahenderson' => 'sahenderson06',
+                'samasinter' => 'SAMasinter04',
+                'rcollar' => 'rcollar06',
+                'vjbowman' => 'vjbowman06',
+                'nadahlman' => 'NADAHLMAN98',
+                'jjhkim00' => 'JJKIM00A',
+                'absanipe' => 'ABSanipe05',
+                'kwilliams' => 'KHWILLIAMS',
+                'dhylee01' => 'DHLEE01A',
+                'hleung' => 'HOLEUNG',
+                'nko' => 'nko06',
+                'mvdabova' => 'mvdabova06',
+                'splynch' => 'splynch06',
+                'lawojcik' => 'lawojcik06',
+                'ksraverta' => 'ksraverta06',
+                'sjbirnsswindlehurst' => 'sjbirnsswindle06',
+                'athadley' => 'athadley06',
+                'smmaurer' => 'smmaurer06',
+                'jneley' => 'jneley06',
+                'tshooper' => 'tshooper06',
+                'metedaldi' => 'metedaldi06',
+                'njbrewster' => 'njbrewster06',
+                'kchunt' => 'kchunt06',
+                'ashurd' => 'ashurd06',
+                'cmburnor' => 'cmburnor06',
+                'mkim' => 'mkim06',
+                'neross' => 'neross06',
+                'emscheiderer' => 'emscheiderer06',
+                'jcrucker' => 'jcrucker06',
+                'chkim' => 'chkim06',
+                'jlbuchman' => 'jlbuchman07',
+                'jbcollins05' => 'JBCOLLINS06',
+                'nhjuul' => 'NHJUUL05',
+                'ejangowski' => 'EJANGOWSKI05',
+                'slaidlaw' => 'WSLAIDLAW',
+                'ckeller' => 'CWKELLER',
+                'marx' => 'AWMARX',
+                'nnbastien' => 'NMBASTIEN',
+                'mbradbury10' => 'mbradbury09',
+                'vsochat08' => 'VVSOCHAT',
+                'sconway10' => 'sconway09',
+                'aoka' => 'aoka06',
+                'rabbey10' => 'rabbey09',
+                'semiller10' => 'smiller09',
+                'kleeroberts' => 'kmleeroberts',
+                'ccunningham' => 'CACUNNINGHAM',
+                'jdiaz10' => 'jdiaz09',
+                'ehowland' => 'bhowland',
+                'tlamkin10' => 'tlamkincarughi10',
+                'achang10' => 'achanggraham10',
+                'eleblanc' => 'EALEBLANC',
+                'lbui10' => 'ldbui',
+                'jbeyer' => 'JNBEYER',
+                'coettel10' => 'coettelflaherty10',
+                'acalderon' => 'APCALDERON',
+                'dpaula' => 'DCPAULA',
+                'gdiaz10' => 'gdiazsilveira10',
+                'ccallahan' => 'CLCALLAHAN',
+                'mgonzalez10' => 'mgonzalezhernandez10',
+                'jchisamore' => 'jmchisamore',
+                'lgaylebrissett' => 'ldgaylebr',
+                'ctarantino' => 'cntarantino',
+                'eboutilier' => 'EGBOUTILIER');
+                
+                if (array_key_exists($this->username, $oldUsernamesArray))
+                {
+                        return $oldUsernamesArray[$this->username];
+                }
+                else
+                {
+                        return "ERROR";
+                }
+        }
     
     /* getX and setX */
  
@@ -1049,8 +1007,8 @@ class User {
 
       /* don't add false preferences (lack is assumed to be false) */
       if (!$val || strtolower($val) != 'false' || $val != '') {
-	$query = "INSERT INTO preferences (uid, name, value) VALUES (" . $this->userID . ", '{$name}', '{$val}')";
-	$this->dbh->query($query);
+        $query = "INSERT INTO preferences (uid, name, value) VALUES (" . $this->userID . ", '{$name}', '{$val}')";
+        $this->dbh->query($query);
       }
 
       $this->prefs[$name] = $val;
@@ -1061,27 +1019,29 @@ class User {
      */
     function getPreference ($name) {
       if (isset($this->prefs[$name]))
-	return $this->prefs[$name];
+        return $this->prefs[$name];
 
       $query = "SELECT value FROM preferences WHERE uid=" . $this->userID . " AND name='{$name}'";
-      
       /* execute the query */
-      $result = $this->dbh->limitQuery($query,0,1);
-      $this->dbh->limit_from = $this->dbh->limit_count = null;
-      if (isset($result) && !DB::isError($result)) {
-	$row = $result->fetchRow();
-	if ($row['value'] == 'true') {
-	  $this->prefs[$name] = true;
-	  return true;
-	} else if ($row['value'] == 'false') {
-	  $this->prefs[$name] = false;
-	  return false;
-	} else {
-	  $this->prefs[$name] = $row['value'];
-	}
-	return (isset($row['value']) ? $row['value'] : false);
+      $result = $this->dbh->query($query);
+      if ($result) {
+        $row = $result->fetch();
+        if ($row == false) {
+          return false;
+        }
+        
+        if ($row['value'] == 'true') {
+          $this->prefs[$name] = true;
+          return true;
+        } else if ($row['value'] == 'false') {
+          $this->prefs[$name] = false;
+          return false;
+        } else {
+          $this->prefs[$name] = $row['value'];
+        }
+        return (isset($row['value']) ? $row['value'] : false);
       } else {
-	return PLANWORLD_ERROR;
+        return PLANWORLD_ERROR;
       }
     }
 
@@ -1174,65 +1134,66 @@ class User {
      * @returns Plan
      */
     function displayPlan (&$user, $plan=null, $ts=null) {
+      
       $out = '<!-- ' . $this->getUserID() . '-->';
       if (!$user->planwatch->inPlanwatch($this) && !isset($plan)) {
-	$out .= "<tt><a href=\"" . PW_URL_BASE . "add.php?add=" . $this->username . ";trans=t\" title=\"Add " . $this->username . " to my planwatch\">(Add to my planwatch)</a></tt><br />\n";
+        $out .= "<tt><a href=\"" . PW_URL_BASE . "add.php?add=" . $this->username . ";trans=t\" title=\"Add " . $this->username . " to my planwatch\">(Add to my planwatch)</a></tt><br />\n";
       } else if (!isset($plan)) {
-	$out .= "<tt><a href=\"" . PW_URL_BASE . "add.php?add=" . $this->username . ";trans=t;remove=t\" title=\"Remove " . $this->username . " from my planwatch\">(Remove from my planwatch)</a></tt><br />\n";
+        $out .= "<tt><a href=\"" . PW_URL_BASE . "add.php?add=" . $this->username . ";trans=t;remove=t\" title=\"Remove " . $this->username . " from my planwatch\">(Remove from my planwatch)</a></tt><br />\n";
       }
 
       $out .= "<tt>Login name: <strong>{$this->username}</strong>";
       if ($this->isUser() && $this->isSharedFor($user))
-	$out .= " (<a href=\"" . PW_URL_INDEX . "?id=edit_plan;u={$this->username}\">edit</a>)";
+        $out .= " (<a href=\"" . PW_URL_INDEX . "?id=edit_plan;u={$this->username}\">edit</a>)";
       $out .= " (<a href=\"#\" onclick=\"return send('" . $this->username . "');\" title=\"send to " . $this->username . "\">send</a>)<br />\n";
 
       /* user doesn't exist */
       if (!$this->isUser() || ($this->lastLogin == 0 && $this->lastUpdate == 0)) {
-	$out .= "Last login: ???<br />\n";
-	$out .= "Last update: ???<br />\n";
-	$out .= "Plan:<br />\n";
-	$out .= "[Sorry, could not find \"{$this->username}\"]</tt>\n";
-	return $out;
-      } else if ($this->lastUpdate == 0) {
-	$out .= "Last login: " . Planworld::getDisplayDate($this->lastLogin) . "<br />\n";
-	$out .= "Last update: Never<br />\n";
-	$out .= "Plan:<br />\n";
-	$out .= "[No Plan]</tt>\n";
-	return $out;
+        $out .= "Last login: ???<br />\n";
+        $out .= "Last update: ???<br />\n";
+        $out .= "Plan:<br />\n";
+        $out .= "[Sorry, could not find \"{$this->username}\"]</tt>\n";
+        return $out;
+      } else if ($this->lastUpdate == 0 && !isset($plan)) {
+        $out .= "Last login: " . Planworld::getDisplayDate($this->lastLogin) . "<br />\n";
+        $out .= "Last update: Never<br />\n";
+        $out .= "Plan:<br />\n";
+        $out .= "[No Plan]</tt>\n";
+        return $out;
       }
 
       $out .= "Last login: " . Planworld::getDisplayDate($this->lastLogin) . "<br />\n";
       $out .= "Last updated: " . Planworld::getDisplayDate($this->lastUpdate);
 
       if (Archive::hasPublicEntries($this->userID) || $user->getUserID() == $this->userID) {
-	$out .= " (<a href=\"" . PW_URL_INDEX . "?id=archiving;u=" . $this->username . "\" title=\"Archives\">archives</a>)";
+        $out .= " (<a href=\"" . PW_URL_INDEX . "?id=archiving;u=" . $this->username . "\" title=\"Archives\">archives</a>)";
       }
 
       $out .= "<br />\n";
 
       if (isset($ts)) {
-	$out .= "Date posted: " . Planworld::getDisplayDate($ts);
-	if ($name = Archive::getName($this->userID, $ts)) {
-	  $out .= ' (<strong>' . Archive::getName($this->userID, $ts) . '</strong>)';
-	}
-	$out .= "<br />\n";
+        $out .= "Date posted: " . Planworld::getDisplayDate($ts);
+        if ($name = Archive::getName($this->userID, $ts)) {
+          $out .= ' (<strong>' . Archive::getName($this->userID, $ts) . '</strong>)';
+        }
+        $out .= "<br />\n";
       }
 
       $out .= "Plan:</tt>\n";
 
       /* assemble text of plan */
       if (!isset($plan)) {
-	$plan_txt = $this->getPlan($user, $ts);
+        $plan_txt = $this->getPlan($user, $ts);
       } else {
-	// plan was passed as a parameter (probably previewing)
-	$plan_txt = $plan;
+        // plan was passed as a parameter (probably previewing)
+        $plan_txt = $plan;
       }
 
       /* only wordwrap if a text plan */
       if (preg_match('/^\<pre\>(.*)\<\/pre\>\s*$/misD', $plan_txt)) {
-	$out .= Planworld::addLinks(wordwrap($plan_txt, 76, "\n", 1), $user->getUsername());
+        $out .= Planworld::addLinks(wordwrap($plan_txt, 76, "\n", 1), $user->getUsername());
       } else {
-	$out .= Planworld::addLinks($plan_txt, $user->getUsername());
+        $out .= Planworld::addLinks($plan_txt, $user->getUsername());
       }
 
       return $out;
@@ -1247,40 +1208,39 @@ class User {
     function getPlan (&$user, $ts=null) {
       if (!isset($ts)) {
 
-	if ($user->getUserID() != $this->userID) {
-	  $this->addView();
-	  Archive::addView($this->userID, $this->lastUpdate);
-	  /* check for mutual snitch registration */
-	  if ($user->getSnitch() && $this->snitch) {
-	    $this->addSnitchView($user);
-	  }
-	}
-	
-	if (!isset($this->plan)) {
-	  $query = "SELECT content FROM plans WHERE uid=" . $this->userID;
+        if ($user->getUserID() != $this->userID) {
+          $this->addView();
+          Archive::addView($this->userID, $this->lastUpdate);
+          /* check for mutual snitch registration */
+          if ($user->getSnitch() && $this->snitch) {
+            $this->addSnitchView($user);
+          }
+        }
+        
+        if (!isset($this->plan)) {
+          $query = "SELECT content FROM plans WHERE uid=" . $this->userID;
+          /* execute the query */
+          $result = $this->dbh->query($query);
+          if ($result) {
+            $row = $result->fetch();
+            $this->plan = $row ? $row['content'] : "";
+          } else {
+            return PLANWORLD_ERROR;
+          }
+        }
 
-	  /* execute the query */
-	  $result = $this->dbh->query($query);
-	  if (isset($result) && !DB::isError($result)) {
-	    $row = $result->fetchRow();
-	    $this->plan = $row['content'];
-	  } else {
-	    return PLANWORLD_ERROR;
-	  }
-	}
-
-	return $this->plan;
+        return $this->plan;
 
       } else {
-	/* fetch it from the archives */
-	if (Archive::isPublic($this->userID, $ts) || $user->getUserID() == $this->userID) {
-	  if ($user->getUserID() != $this->userID) {
-	    Archive::addView($this->userID, $ts);
-	  }
-	  return Archive::getEntry($this->userID, $ts);
-	} else {
-	  return "<strong>Error:</strong> You are not authorized to view this entry.";
-	}
+        /* fetch it from the archives */
+        if (Archive::isPublic($this->userID, $ts) || $user->getUserID() == $this->userID) {
+          if ($user->getUserID() != $this->userID) {
+            Archive::addView($this->userID, $ts);
+          }
+          return Archive::getEntry($this->userID, $ts);
+        } else {
+          return "<strong>Error:</strong> You are not authorized to view this entry.";
+        }
       }
     }
 
@@ -1293,11 +1253,11 @@ class User {
      */
     function setPlan ($plan, $archive='N', $name = '', $timestamp = null) {
       if (!isset($timestamp))
-	$timestamp = mktime();
+        $timestamp = mktime();
 
       /* save it in the archives */
       if ($archive == 'P' || $archive == 'Y') {
-	Archive::saveEntry($this->userID, $timestamp, addslashes($plan), addslashes(htmlspecialchars($name)), ($archive == 'Y') ? true : false);
+        Archive::saveEntry($this->userID, $timestamp, addslashes($plan), addslashes(htmlspecialchars($name)), ($archive == 'Y') ? true : false);
       }
 
       $oldplan = $this->getPlan($this);
@@ -1307,30 +1267,30 @@ class User {
 
       /* format the journalled plan */
       if ($this->getPreference('journal')) {
-	if (!$divider = $this->getPreference('journal_divider')) {
-	  $divider = PW_DIVIDER;
-	}
-	if ($this->getPreference('journal_order') == 'new') {
-	  $tmp = '';
-	  for ($i=0; $i < $this->getPreference('journal_entries'); $i++) {
-	    list($ts, $txt) = Archive::getEntryByIndex($this->userID, $i);
-	    if ($ts == 0)
-	      break;
-	    $tmp .= Planworld::getDisplayDivider($divider, $ts) . "\n";
-	    $tmp .= $txt . "\n";
-	  }
-	  $plan = $tmp;
-	} else {
-	  $tmp = '';
-	  for ($i=$this->getPreference('journal_entries') - 1; $i>=0; $i--) {
-	    list($ts, $txt) = Archive::getEntryByIndex($this->userID, $i);
-	    if ($ts == 0)
-	      break;
-	    $tmp .= Planworld::getDisplayDivider($divider, $ts) . "\n";
-	    $tmp .= $txt . "\n";
-	  }
-	  $plan = $tmp;
-	}
+        if (!$divider = $this->getPreference('journal_divider')) {
+          $divider = PW_DIVIDER;
+        }
+        if ($this->getPreference('journal_order') == 'new') {
+          $tmp = '';
+          for ($i=0; $i < $this->getPreference('journal_entries'); $i++) {
+            list($ts, $txt) = Archive::getEntryByIndex($this->userID, $i);
+            if ($ts == 0)
+              break;
+            $tmp .= Planworld::getDisplayDivider($divider, $ts) . "\n";
+            $tmp .= $txt . "\n";
+          }
+          $plan = $tmp;
+        } else {
+          $tmp = '';
+          for ($i=$this->getPreference('journal_entries') - 1; $i>=0; $i--) {
+            list($ts, $txt) = Archive::getEntryByIndex($this->userID, $i);
+            if ($ts == 0)
+              break;
+            $tmp .= Planworld::getDisplayDivider($divider, $ts) . "\n";
+            $tmp .= $txt . "\n";
+          }
+          $plan = $tmp;
+        }
 
       }
 
@@ -1352,30 +1312,30 @@ class User {
 
       /* format the journalled plan */
       if ($this->getPreference('journal')) {
-	if (!$divider = $this->getPreference('journal_divider')) {
-	  $divider = PW_DIVIDER;
-	}
-	if ($this->getPreference('journal_order') == 'new') {
-	  $tmp = '';
-	  for ($i=0; $i < $this->getPreference('journal_entries'); $i++) {
-	    list($ts, $txt) = Archive::getEntryByIndex($this->userID, $i);
-	    if ($ts == 0)
-	      break;
-	    $tmp .= Planworld::getDisplayDivider($divider, $ts) . "\n";
-	    $tmp .= $txt . "\n";
-	  }
-	  $plan = $tmp;
-	} else {
-	  $tmp = '';
-	  for ($i=$this->getPreference('journal_entries') - 1; $i>=0; $i--) {
-	    list($ts, $txt) = Archive::getEntryByIndex($this->userID, $i);
-	    if ($ts == 0)
-	      break;
-	    $tmp .= Planworld::getDisplayDivider($divider, $ts) . "\n";
-	    $tmp .= $txt . "\n";
-	  }
-	  $plan = $tmp;
-	}
+        if (!$divider = $this->getPreference('journal_divider')) {
+          $divider = PW_DIVIDER;
+        }
+        if ($this->getPreference('journal_order') == 'new') {
+          $tmp = '';
+          for ($i=0; $i < $this->getPreference('journal_entries'); $i++) {
+            list($ts, $txt) = Archive::getEntryByIndex($this->userID, $i);
+            if ($ts == 0)
+              break;
+            $tmp .= Planworld::getDisplayDivider($divider, $ts) . "\n";
+            $tmp .= $txt . "\n";
+          }
+          $plan = $tmp;
+        } else {
+          $tmp = '';
+          for ($i=$this->getPreference('journal_entries') - 1; $i>=0; $i--) {
+            list($ts, $txt) = Archive::getEntryByIndex($this->userID, $i);
+            if ($ts == 0)
+              break;
+            $tmp .= Planworld::getDisplayDivider($divider, $ts) . "\n";
+            $tmp .= $txt . "\n";
+          }
+          $plan = $tmp;
+        }
 
       }
 
@@ -1390,40 +1350,40 @@ class User {
     }
 
     function previewPlan (&$user, $plan) {
-      $timestamp = mktime();
+      $timestamp = time();
 
       /* format the journalled plan */
       if ($this->getPreference('journal')) {
-	if (!$divider = $this->getPreference('journal_divider')) {
-	  $divider = PW_DIVIDER;
-	}
-	if ($this->getPreference('journal_order') == 'new') {
-	  // show current plan
-	  $tmp = Planworld::getDisplayDivider($divider, $timestamp) . "\n" . $plan . "\n";
+        if (!$divider = $this->getPreference('journal_divider')) {
+          $divider = PW_DIVIDER;
+        }
+        if ($this->getPreference('journal_order') == 'new') {
+          // show current plan
+          $tmp = Planworld::getDisplayDivider($divider, $timestamp) . "\n" . $plan . "\n";
 
-	  // show archived plans
-	  for ($i=0; $i < $this->getPreference('journal_entries'); $i++) {
-	    list($ts, $txt) = Archive::getEntryByIndex($this->userID, $i);
-	    if ($ts == 0)
-	      break;
-	    $tmp .= Planworld::getDisplayDivider($divider, $ts) . "\n";
-	    $tmp .= $txt . "\n";
-	  }
-	  $plan = $tmp;
-	} else {
-	  $tmp = '';
-	  for ($i=$this->getPreference('journal_entries') - 1; $i>=0; $i--) {
-	    list($ts, $txt) = Archive::getEntryByIndex($this->userID, $i);
-	    if ($ts == 0)
-	      break;
-	    $tmp .= Planworld::getDisplayDivider($divider, $ts) . "\n";
-	    $tmp .= $txt . "\n";
-	  }
+          // show archived plans
+          for ($i=0; $i < $this->getPreference('journal_entries'); $i++) {
+            list($ts, $txt) = Archive::getEntryByIndex($this->userID, $i);
+            if ($ts == 0)
+              break;
+            $tmp .= Planworld::getDisplayDivider($divider, $ts) . "\n";
+            $tmp .= $txt . "\n";
+          }
+          $plan = $tmp;
+        } else {
+          $tmp = '';
+          for ($i=$this->getPreference('journal_entries') - 1; $i>=0; $i--) {
+            list($ts, $txt) = Archive::getEntryByIndex($this->userID, $i);
+            if ($ts == 0)
+              break;
+            $tmp .= Planworld::getDisplayDivider($divider, $ts) . "\n";
+            $tmp .= $txt . "\n";
+          }
 
-	  // show current plan
-	  $tmp .= Planworld::getDisplayDivider($divider, $timestamp) . "\n" . $plan . "\n";
-	  $plan = $tmp;
-	}
+          // show current plan
+          $tmp .= Planworld::getDisplayDivider($divider, $timestamp) . "\n" . $plan . "\n";
+          $plan = $tmp;
+        }
 
       }
 
@@ -1436,7 +1396,7 @@ class User {
      */
     function loadPlanwatch () {
       if (!isset($this->planwatch)) {
-	$this->planwatch = new Planwatch($this);
+        $this->planwatch = new Planwatch($this);
       }
     }
     
@@ -1449,11 +1409,11 @@ class User {
 
       /* execute the query */
       $result = $this->dbh->query($query);
-      if (isset($result) && !DB::isError($result)) {
-	$row = $result->fetchRow();
-	return (int) $row['count'];
+      if ($result) {
+        $row = $result->fetch();
+        return (int) $row['count'];
       } else {
-	return PLANWORLD_ERROR;
+        return PLANWORLD_ERROR;
       }
     }
 
@@ -1464,44 +1424,44 @@ class User {
 
       switch ($order) {
       case 'u':
-	$query .= "u2.username ";
+        $query .= "u2.username ";
         break;
       case 'v':
-	$query .= "snitch.views ";
+        $query .= "snitch.views ";
         break;
       default:
-	$query .= "snitch.last_view ";
+        $query .= "snitch.last_view ";
       }
 
       if ($dir == 'a') {
-	$query .= "ASC";
+        $query .= "ASC";
       } else {
-	$query .= "DESC";
+        $query .= "DESC";
       }
 
       /* execute the query */
       if ($this->snitchDisplayNum > 0) {
-	$result = $this->dbh->limitQuery($query, 0, $this->snitchDisplayNum);
-	$this->dbh->limit_from = $this->dbh->limit_count = null;
+        $result = $this->dbh->limitQuery($query, 0, $this->snitchDisplayNum);
+        $this->dbh->limit_from = $this->dbh->limit_count = null;
       } else {
-	$result = $this->dbh->query($query);
+        $result = $this->dbh->query($query);
       }
-      if (isset($result) && !DB::isError($result)) {
-	/* load up this user's planwatch to do some checking against it */
-	$this->loadPlanwatch();
+      if ($result) {
+        /* load up this user's planwatch to do some checking against it */
+        $this->loadPlanwatch();
 
-	$return = array();
-	while ($row = $result->fetchRow()) {
-	  $return[] = array('ID' => (int) $row['s_uid'],
-			    'Name' => $row['s_name'],
-			    'Date' => (int) $row['last_view'],
-			    'Views' => (int) $row['views'],
-			    'LastUpdate' => (int) $row['last_update'],
-			    'InPlanwatch' => (bool) $this->planwatch->inPlanwatch($row['s_name']));
-	}
-	return $return;
+        $return = array();
+        while ($row = $result->fetch()) {
+          $return[] = array('ID' => (int) $row['s_uid'],
+                            'Name' => $row['s_name'],
+                            'Date' => (int) $row['last_view'],
+                            'Views' => (int) $row['views'],
+                            'LastUpdate' => (int) $row['last_update'],
+                            'InPlanwatch' => (bool) $this->planwatch->inPlanwatch($row['s_name']));
+        }
+        return $return;
       } else {
-	return PLANWORLD_ERROR;
+        return PLANWORLD_ERROR;
       }
     }
 
@@ -1541,7 +1501,7 @@ class User {
      */
     function setSnitchTracker ($val) {
         $this->snitchTracker = $val;
-	$this->setPreference('snitchtracker', (($val) ? 'true' : 'false'));
+        $this->setPreference('snitchtracker', (($val) ? 'true' : 'false'));
     }
     
     /**
@@ -1559,15 +1519,15 @@ class User {
 
       /* execute the query */
       $result = $this->dbh->query($query);
-      if (isset($result) && !DB::isError($result)) {
-	$return = array();
-	while ($row = $result->fetchRow()) {
-	  $return[] = array($row['username'],
-			    $row['viewed']);
-	}
-	return $return;
+      if ($result) {
+        $return = array();
+        while ($row = $result->fetch()) {
+          $return[] = array($row['username'],
+                            $row['viewed']);
+        }
+        return $return;
       } else {
-	return PLANWORLD_ERROR;
+        return PLANWORLD_ERROR;
       }
     }
 
@@ -1580,13 +1540,13 @@ class User {
     function setSnitch ($val) {
       $this->changed = true;
       if (!$val && $this->snitch) {
-	$this->clearSnitch();
-	$this->setSnitchTracker(false);
-	$this->clearSnitchTracker();
+        $this->clearSnitch();
+        $this->setSnitchTracker(false);
+        $this->clearSnitchTracker();
       } else if ($val && $val != $this->snitch) {
-	$this->startSnitch();
+        $this->startSnitch();
       } else {
-	$this->changed = false;
+        $this->changed = false;
       }
       $this->snitch = $val;
     }
