@@ -22,7 +22,7 @@ if ($_user->isAdmin()) {
   if (isset($_POST['submittor']) && !empty($_POST['submittor'])) {
     if (!Planworld::isUser($_POST['submittor'])) {
       /* user to attribute to doesn't exist */
-      header("Location: " . PW_URL_INDEX . "?id=stuff;resp=2\n");
+      header("Location: " . PW_URL_INDEX . "?id=stuff&resp=2\n");
       exit();
     }
     $submittor = addslashes($_POST['submittor']);
@@ -41,6 +41,6 @@ if ($_user->isAdmin()) {
   Cookie::addCookie(strip_tags($_POST['cookie'], PW_ALLOWED_TAGS), $_POST['author'], $_user);
 }
 
-header("Location: " . PW_URL_INDEX . "?id=stuff;resp=1\n");
+header("Location: " . PW_URL_INDEX . "?id=stuff&resp=1\n");
 exit();
 ?>

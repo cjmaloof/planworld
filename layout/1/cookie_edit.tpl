@@ -41,9 +41,9 @@ if (!$_user->isAdmin()) {
     $cookie = Cookie::get($_GET['cid']);
   }
 ?>
-<form method="post" action="<?php echo PW_URL_INDEX; ?>?id=stuff;s=cookie;a=edit;cid=<?php echo $_GET['cid']; ?>" name="cookie">
+<form method="post" action="<?php echo PW_URL_INDEX; ?>?id=stuff&amp;s=cookie&amp;a=edit&amp;cid=<?php echo $_GET['cid']; ?>" name="cookie">
 <p class="subtitle">Edit a Cookie</p>
-<p><a href="<?php echo PW_URL_INDEX; ?>?id=stuff;s=cookie;a=approve">return to the approval queue</a></p>
+<p><a href="<?php echo PW_URL_INDEX; ?>?id=stuff&amp;s=cookie&amp;a=approve">return to the approval queue</a></p>
 <?php if (isset($error_msg)) echo $error_msg; ?>
 <table border="0" cellpadding="0" cellspacing="0">
   <tr>
@@ -83,7 +83,7 @@ if (!$_user->isAdmin()) {
 </tr>
 		<tr>
 <td class="entry" align="left">
-<?php if ($_GET['cid'] > 1) { ?><a href="<?php echo PW_URL_INDEX; ?>?id=stuff;s=cookie;a=edit;cid=<?php echo $_GET['cid'] - 1; ?>" name="previous">&lt;&lt;</a><?php } ?> <a href="<?php echo PW_URL_INDEX; ?>?id=stuff;s=cookie;a=edit;cid=<?php echo $_GET['cid'] + 1; ?>" name="next">&gt;&gt;</a></td>
+<?php if ($_GET['cid'] > 1) { ?><a href="<?php echo PW_URL_INDEX; ?>?id=stuff&amp;s=cookie&amp;a=edit&amp;cid=<?php echo $_GET['cid'] - 1; ?>" name="previous">&lt;&lt;</a><?php } ?> <a href="<?php echo PW_URL_INDEX; ?>?id=stuff&amp;s=cookie&amp;a=edit&amp;cid=<?php echo $_GET['cid'] + 1; ?>" name="next">&gt;&gt;</a></td>
 		  <td class="entry" align="right">
 			<input class="inputButton" type="submit" name="submit" value="edit" />
 		  </td>

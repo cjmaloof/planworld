@@ -11,8 +11,8 @@ class Cookie {
   /**
    * Adds cookies to the jar.
    */
-  function addCookie ($content, $author, &$submittor, $approved=false) {
-    $id = getNextCookieId();
+  static function addCookie ($content, $author, &$submittor, $approved=false) {
+    $id = Cookie::getNextCookieId();
 
     $query = "INSERT INTO cookies (id, quote, author, s_uid, approved) VALUES ({$id}, '" . addslashes($content) . "', '" . addslashes($author) . "', ";
 
@@ -33,7 +33,7 @@ class Cookie {
     Planworld::query($query);
   }
   
-  function getNextCookieId() {
+  static function getNextCookieId() {
     $dbh = DBUtils::_connect();
     $query = "SELECT 1 + ifnull(max(id), 0) AS id from cookies";
     $result = $dbh->query($query);
@@ -43,7 +43,7 @@ class Cookie {
   /**
    * Modifies cookies already in the jar.
    */
-  function edit ($id, $content, $author, &$submittor, $approved=false) {
+  static function edit ($id, $content, $author, &$submittor, $approved=false) {
     $dbh = DBUtils::_connect();
 
     $query = "UPDATE cookies SET quote='" . addslashes($content) . "', author='" . addslashes($author) . "', s_uid=";
@@ -95,7 +95,7 @@ class Cookie {
    * array Cookie::getPendingCookies ()
    * Returns all cookies that have not yet been approved.
    */
-  function getPendingCookies () {
+  static function getPendingCookies () {
     $dbh = DBUtils::_connect();
 
     $query = "SELECT cookies.id, quote, author, username FROM cookies LEFT JOIN users ON cookies.s_uid=users.id WHERE approved='N' ORDER BY author";
@@ -120,7 +120,7 @@ class Cookie {
    * void Cookie::approve ()
    * Approves cookies whose ids have been passed.
    */
-  function approve ($list) {
+  static function approve ($list) {
     if (empty($list)) {
       return;
     } else {
@@ -141,7 +141,7 @@ class Cookie {
    * void Cookie::remove ()
    * Remove cookies whose ids have been passed.
    */
-  function remove ($list) {
+  static function remove ($list) {
     if (empty($list)) {
       return;
     } else {
@@ -158,7 +158,7 @@ class Cookie {
     }
   }
 
-  function get ($id) {
+  static function get ($id) {
     $dbh = DBUtils::_connect();
 
     $query = "SELECT cookies.id, quote, author, username, approved FROM cookies LEFT JOIN users ON cookies.s_uid=users.id WHERE cookies.id={$id}";

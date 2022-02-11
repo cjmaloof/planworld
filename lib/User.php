@@ -275,7 +275,7 @@ class User {
      */
     function startSnitch () {
         $this->snitch = true;
-        $this->snitchEnabled = mktime();
+        $this->snitchEnabled = time();
         $this->changed = true;
     }
     
@@ -1137,15 +1137,15 @@ class User {
       
       $out = '<!-- ' . $this->getUserID() . '-->';
       if (!$user->planwatch->inPlanwatch($this) && !isset($plan)) {
-        $out .= "<tt><a href=\"" . PW_URL_BASE . "add.php?add=" . $this->username . ";trans=t\" title=\"Add " . $this->username . " to my planwatch\">(Add to my planwatch)</a></tt><br />\n";
+        $out .= "<tt><a href=\"" . PW_URL_BASE . "add.php?add=" . $this->username . "&amp;trans=t\" title=\"Add " . $this->username . " to my planwatch\">(Add to my planwatch)</a></tt><br />\n";
       } else if (!isset($plan)) {
-        $out .= "<tt><a href=\"" . PW_URL_BASE . "add.php?add=" . $this->username . ";trans=t;remove=t\" title=\"Remove " . $this->username . " from my planwatch\">(Remove from my planwatch)</a></tt><br />\n";
+        $out .= "<tt><a href=\"" . PW_URL_BASE . "add.php?add=" . $this->username . "&amp;trans=t;remove=t\" title=\"Remove " . $this->username . " from my planwatch\">(Remove from my planwatch)</a></tt><br />\n";
       }
 
       $out .= "<tt>Login name: <strong>{$this->username}</strong>";
       if ($this->isUser() && $this->isSharedFor($user))
-        $out .= " (<a href=\"" . PW_URL_INDEX . "?id=edit_plan;u={$this->username}\">edit</a>)";
-      $out .= " (<a href=\"#\" onclick=\"return send('" . $this->username . "');\" title=\"send to " . $this->username . "\">send</a>)<br />\n";
+        $out .= " (<a href=\"" . PW_URL_INDEX . "?id=edit_plan&amp;u={$this->username}\">edit</a>)";
+      $out .= " (<a href=\"#\" onclick=\"return send('" . $this->username . "')&amp;\" title=\"send to " . $this->username . "\">send</a>)<br />\n";
 
       /* user doesn't exist */
       if (!$this->isUser() || ($this->lastLogin == 0 && $this->lastUpdate == 0)) {
@@ -1166,7 +1166,7 @@ class User {
       $out .= "Last updated: " . Planworld::getDisplayDate($this->lastUpdate);
 
       if (Archive::hasPublicEntries($this->userID) || $user->getUserID() == $this->userID) {
-        $out .= " (<a href=\"" . PW_URL_INDEX . "?id=archiving;u=" . $this->username . "\" title=\"Archives\">archives</a>)";
+        $out .= " (<a href=\"" . PW_URL_INDEX . "?id=archiving&amp;u=" . $this->username . "\" title=\"Archives\">archives</a>)";
       }
 
       $out .= "<br />\n";

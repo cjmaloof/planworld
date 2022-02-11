@@ -124,7 +124,7 @@ Private:
 <input class="inputRadio" type="radio" name="archive" value="P"<?php if ($_user->getArchive() == 'P') echo ' checked="checked"'; ?> />
 </td>
 <td rowspan="3" valign="top" class="description">
-<p>If <strong>Archiving</strong> is set to either <i>Public</i> or <i>Private</i>, old plans will be archived. <i>Public</i> archiving means that archived plans will be public by default (you can change make individual entries private through the <a href="<?php echo PW_URL_INDEX; ?>?id=archiving;u=<?php echo $_user->getUsername(); ?>">archiving interface</a> later) while <i>Private</i> archiving means that they will be private by default.</p>
+<p>If <strong>Archiving</strong> is set to either <i>Public</i> or <i>Private</i>, old plans will be archived. <i>Public</i> archiving means that archived plans will be public by default (you can change make individual entries private through the <a href="<?php echo PW_URL_INDEX; ?>?id=archiving&amp;u=<?php echo $_user->getUsername(); ?>">archiving interface</a> later) while <i>Private</i> archiving means that they will be private by default.</p>
 </td>
 </tr>
 <tr>
@@ -192,7 +192,7 @@ Content type: <select name="journal_type">
 <br /><br />This will display as:<br />
 <?php echo $divider_display; ?>
 </p>
-<p><a href="<?php echo PW_URL_INDEX; ?>?id=archiving;u=<?php echo $_user->getUsername(); ?>;repost=y">Click here to re-post your plan with updated divider and entry settings</a><br /></p>
+<p><a href="<?php echo PW_URL_INDEX; ?>?id=archiving&amp;u=<?php echo $_user->getUsername(); ?>&amp;repost=y">Click here to re-post your plan with updated divider and entry settings</a><br /></p>
 <?php
 } // if ($_user->getPreference('journal'))
 ?>

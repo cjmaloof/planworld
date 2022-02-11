@@ -16,7 +16,7 @@ class Snoop {
    * @param params Parameters to use.
    * @private
    */
-  function _call ($server, $method, $params=null) {
+  static function _call ($server, $method, $params=null) {
     return xu_rpc_http_concise(array('method' => $method,
                                      'args'   => $params, 
                                      'host'   => $server['Hostname'], 
@@ -31,7 +31,7 @@ class Snoop {
    * @returns matches Array of references.
    * @private
    */
-  function _getReferences ($content) {
+  static function _getReferences ($content) {
     /* find references in plan */
     preg_match_all("/!([a-z0-9\-\.@]+)(!|:[^!]+!)/i", $content, $matches, PREG_PATTERN_ORDER);
     return $matches;
@@ -41,7 +41,7 @@ class Snoop {
    * void Snoop::addReference ($from, $to)
    * Add a snoop reference by $from for $to
    */
-  function addReference ($from, $to, $date=null) {
+  static function addReference ($from, $to, $date=null) {
     $dbh = DBUtils::_connect();
 
     if (!isset($date)) {
@@ -60,7 +60,7 @@ class Snoop {
    * void Snoop::removeReference ($from, $to)
    * Removes a snoop reference by $from for $to
    */
-  function removeReference ($from, $to) {
+  static function removeReference ($from, $to) {
     $dbh = DBUtils::_connect();
 
     $query = "DELETE FROM snoop WHERE uid={$to} AND s_uid={$from}";
@@ -72,7 +72,7 @@ class Snoop {
    * void Snoop::clearReferences ($uid)
    * Clear all snoop references by $uid
    */
-  function clearReferences ($uid) {
+  static function clearReferences ($uid) {
     $dbh = DBUtils::_connect();
 
     $query = "DELETE FROM snoop WHERE s_uid={$uid}";
@@ -84,7 +84,7 @@ class Snoop {
    * void Snoop::clearRemoteReferences ($uid)
    * Clear all remote snoop references by $uid
    */
-  function clearRemoteReferences ($node, $uid) {
+  static function clearRemoteReferences ($node, $uid) {
     Snoop::_call($node, 'planworld.snoop.clear', $uid . '@' . PW_NAME);
   }
 
@@ -92,7 +92,7 @@ class Snoop {
    * void Snoop::process ($user, $new, $old)
    * Find new / removed snoop references in $user's plan.
    */
-  function process (&$user, $new, $old) {
+  static function process (&$user, $new, $old) {
 
     /* find references in old plan */
     $old_matches = Snoop::_getReferences($old);

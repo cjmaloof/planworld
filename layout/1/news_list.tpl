@@ -26,11 +26,11 @@ if (!$_user->isAdmin()) {
 ?>
 <span class="subtitle">News Item Management</span><br />
 <?php if (isset($msg)) echo $msg; ?>
-<p><a href="<?php echo PW_URL_INDEX; ?>?id=stuff;s=news;a=add">add a news entry</a></p>
+<p><a href="<?php echo PW_URL_INDEX; ?>?id=stuff&amp;s=news&amp;a=add">add a news entry</a></p>
 <table cellpadding="0" cellspacing="0" align="center" border="0">
 <tr>
 <td class="border">
-<form action="<?php echo PW_URL_INDEX; ?>?id=stuff;s=news;a=list" method="POST">
+<form action="<?php echo PW_URL_INDEX; ?>?id=stuff&amp;s=news&amp;a=list" method="POST">
 <table cellspacing="1" cellpadding="3" border="0">
 <tr>
 <td align="center" class="columnheader">live</td>
@@ -46,7 +46,7 @@ if (isset($news) && is_array($news) && !empty($news)) {
 <td align="center" valign="center"<?php if ($news_item['live']) echo ' class="description"'; ?>><input type="checkbox" name="live[]" value="<?php echo $news_item['id']; ?>"<?php if ($news_item['live']) echo ' checked="true"'; ?> /></td>
 <td align="left"><?php echo Planworld::getDisplayDate($news_item['date']); ?></td>
 <td align="left"><?php echo $news_item['news']; ?></td>
-<td align="center"><a href="<?php echo PW_URL_INDEX; ?>?id=stuff;s=news;a=edit;nid=<?php echo $news_item['id']; ?>" title="edit this news item">edit</a></td>
+<td align="center"><a href="<?php echo PW_URL_INDEX; ?>?id=stuff&amp;s=news&amp;a=edit&amp;nid=<?php echo $news_item['id']; ?>" title="edit this news item">edit</a></td>
 </tr>
 <?php
   } // foreach($news as $new_item)

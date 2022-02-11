@@ -115,9 +115,9 @@ class RemoteUser extends User {
       
       $out = '';
       if (!$user->planwatch->inPlanwatch($this)) {
-	$out .= "<tt><a href=\"" . PW_URL_BASE . "add.php?add=" . $this->username . ";trans=t\" title=\"Add " . $this->username . " to my planwatch\">(Add to my planwatch)</a></tt><br />\n";
+	$out .= "<tt><a href=\"" . PW_URL_BASE . "add.php?add=" . $this->username . "&amp;trans=t\" title=\"Add " . $this->username . " to my planwatch\">(Add to my planwatch)</a></tt><br />\n";
       } else {
-	$out .= "<tt><a href=\"" . PW_URL_BASE . "add.php?add=" . $this->username . ";trans=t;remove=t\" title=\"Remove " . $this->username . " from my planwatch\">(Remove from my planwatch)</a></tt><br />\n";
+	$out .= "<tt><a href=\"" . PW_URL_BASE . "add.php?add=" . $this->username . "&amp;trans=t&amp;remove=t\" title=\"Remove " . $this->username . " from my planwatch\">(Remove from my planwatch)</a></tt><br />\n";
       }
 
       $out .= "<tt>Login name: {$this->username}";
@@ -130,13 +130,13 @@ class RemoteUser extends User {
 	$out .= "Plan:<br />\n";
 	$out .= "[Sorry, could not find \"{$this->username}\"]</tt>\n";
       } else if ($this->lastUpdate == 0) {
-	$out .= " (<a href=\"#\" onclick=\"return send('" . $this->username . "');\" title=\"send to " . $this->username . "\">send</a>)<br />\n";
+	$out .= " (<a href=\"#\" onclick=\"return send('" . $this->username . "')&amp;\" title=\"send to " . $this->username . "\">send</a>)<br />\n";
 	$out .= "Last login: " . Planworld::getDisplayDate($this->lastLogin) . "<br />\n";
 	$out .= "Last update: Never<br />\n";
 	$out .= "Plan:<br />\n";
 	$out .= "[No Plan]</tt>\n";
       } else {
-	$out .= " (<a href=\"#\" onclick=\"return send('" . $this->username . "');\" title=\"send to " . $this->username . "\">send</a>)<br />\n";
+	$out .= " (<a href=\"#\" onclick=\"return send('" . $this->username . "')&amp;\" title=\"send to " . $this->username . "\">send</a>)<br />\n";
 	$out .= "Last login: " . Planworld::getDisplayDate($this->lastLogin) . "<br />\n";
 	$out .= "Last updated: " . Planworld::getDisplayDate($this->lastUpdate) . "<br />\n";
 	if (isset($ts)) {

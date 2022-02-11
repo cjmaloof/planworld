@@ -29,33 +29,33 @@ while ($i < sizeof($users)) {
 ?>
 <span class="subtitle">Whois (<?php echo number_format($num_users); ?> users with plans)</span><br /><br />
 <div align="center">
-<a href="<?php echo PW_URL_INDEX; ?>?id=whois;u=a">A</a> |
-<a href="<?php echo PW_URL_INDEX; ?>?id=whois;u=b">B</a> |
-<a href="<?php echo PW_URL_INDEX; ?>?id=whois;u=c">C</a> |
-<a href="<?php echo PW_URL_INDEX; ?>?id=whois;u=d">D</a> |
-<a href="<?php echo PW_URL_INDEX; ?>?id=whois;u=e">E</a> |
-<a href="<?php echo PW_URL_INDEX; ?>?id=whois;u=f">F</a> |
-<a href="<?php echo PW_URL_INDEX; ?>?id=whois;u=g">G</a> |
-<a href="<?php echo PW_URL_INDEX; ?>?id=whois;u=h">H</a> |
-<a href="<?php echo PW_URL_INDEX; ?>?id=whois;u=i">I</a> |
-<a href="<?php echo PW_URL_INDEX; ?>?id=whois;u=j">J</a> |
-<a href="<?php echo PW_URL_INDEX; ?>?id=whois;u=k">K</a> |
-<a href="<?php echo PW_URL_INDEX; ?>?id=whois;u=l">L</a> |
-<a href="<?php echo PW_URL_INDEX; ?>?id=whois;u=m">M</a> |
-<a href="<?php echo PW_URL_INDEX; ?>?id=whois;u=n">N</a> |
-<a href="<?php echo PW_URL_INDEX; ?>?id=whois;u=o">O</a> |
-<a href="<?php echo PW_URL_INDEX; ?>?id=whois;u=p">P</a> |
-<a href="<?php echo PW_URL_INDEX; ?>?id=whois;u=q">Q</a> |
-<a href="<?php echo PW_URL_INDEX; ?>?id=whois;u=r">R</a> |
-<a href="<?php echo PW_URL_INDEX; ?>?id=whois;u=s">S</a> |
-<a href="<?php echo PW_URL_INDEX; ?>?id=whois;u=t">T</a> |
-<a href="<?php echo PW_URL_INDEX; ?>?id=whois;u=u">U</a> |
-<a href="<?php echo PW_URL_INDEX; ?>?id=whois;u=v">V</a> |
-<a href="<?php echo PW_URL_INDEX; ?>?id=whois;u=w">W</a> |
-<a href="<?php echo PW_URL_INDEX; ?>?id=whois;u=x">X</a> |
-<a href="<?php echo PW_URL_INDEX; ?>?id=whois;u=y">Y</a> |
-<a href="<?php echo PW_URL_INDEX; ?>?id=whois;u=z">Z</a> |
-<a href="<?php echo PW_URL_INDEX; ?>?id=whois;u=%23">#</a>
+<a href="<?php echo PW_URL_INDEX; ?>?id=whois&amp;u=a">A</a> |
+<a href="<?php echo PW_URL_INDEX; ?>?id=whois&amp;u=b">B</a> |
+<a href="<?php echo PW_URL_INDEX; ?>?id=whois&amp;u=c">C</a> |
+<a href="<?php echo PW_URL_INDEX; ?>?id=whois&amp;u=d">D</a> |
+<a href="<?php echo PW_URL_INDEX; ?>?id=whois&amp;u=e">E</a> |
+<a href="<?php echo PW_URL_INDEX; ?>?id=whois&amp;u=f">F</a> |
+<a href="<?php echo PW_URL_INDEX; ?>?id=whois&amp;u=g">G</a> |
+<a href="<?php echo PW_URL_INDEX; ?>?id=whois&amp;u=h">H</a> |
+<a href="<?php echo PW_URL_INDEX; ?>?id=whois&amp;u=i">I</a> |
+<a href="<?php echo PW_URL_INDEX; ?>?id=whois&amp;u=j">J</a> |
+<a href="<?php echo PW_URL_INDEX; ?>?id=whois&amp;u=k">K</a> |
+<a href="<?php echo PW_URL_INDEX; ?>?id=whois&amp;u=l">L</a> |
+<a href="<?php echo PW_URL_INDEX; ?>?id=whois&amp;u=m">M</a> |
+<a href="<?php echo PW_URL_INDEX; ?>?id=whois&amp;u=n">N</a> |
+<a href="<?php echo PW_URL_INDEX; ?>?id=whois&amp;u=o">O</a> |
+<a href="<?php echo PW_URL_INDEX; ?>?id=whois&amp;u=p">P</a> |
+<a href="<?php echo PW_URL_INDEX; ?>?id=whois&amp;u=q">Q</a> |
+<a href="<?php echo PW_URL_INDEX; ?>?id=whois&amp;u=r">R</a> |
+<a href="<?php echo PW_URL_INDEX; ?>?id=whois&amp;u=s">S</a> |
+<a href="<?php echo PW_URL_INDEX; ?>?id=whois&amp;u=t">T</a> |
+<a href="<?php echo PW_URL_INDEX; ?>?id=whois&amp;u=u">U</a> |
+<a href="<?php echo PW_URL_INDEX; ?>?id=whois&amp;u=v">V</a> |
+<a href="<?php echo PW_URL_INDEX; ?>?id=whois&amp;u=w">W</a> |
+<a href="<?php echo PW_URL_INDEX; ?>?id=whois&amp;u=x">X</a> |
+<a href="<?php echo PW_URL_INDEX; ?>?id=whois&amp;u=y">Y</a> |
+<a href="<?php echo PW_URL_INDEX; ?>?id=whois&amp;u=z">Z</a> |
+<a href="<?php echo PW_URL_INDEX; ?>?id=whois&amp;u=%23">#</a>
 </div>
 <hr width="60%" noshade="noshade" align="center" />
 <div style="float: left; margin-right: 10px;">

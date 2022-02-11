@@ -27,9 +27,9 @@ function selectAll (form) {
 <?php
 if ($uid == $_user->getUsername()) {
 ?>
-<p><a href="<?php echo PW_URL_INDEX; ?>?id=archiving;u=<?php echo $uid; ?>;repost=y">Re-post your plan</a><br />
+<p><a href="<?php echo PW_URL_INDEX; ?>?id=archiving&amp;u=<?php echo $uid; ?>&amp;repost=y">Re-post your plan</a><br />
 <a href="#export">Export your archives</a><br />
-<a href="<?php echo PW_URL_INDEX; ?>?id=archiving;u=<?php echo $uid; ?>;r=y" onclick="return confirm('Are you sure you wish to clear your archives?');">Clear your archives</a></p>
+<a href="<?php echo PW_URL_INDEX; ?>?id=archiving&amp;u=<?php echo $uid; ?>&amp;r=y" onclick="return confirm('Are you sure you wish to clear your archives?');">Clear your archives</a></p>
 <?php
 } // if ($uid == $_user->getUsername()) {
 ?>
@@ -41,7 +41,7 @@ if ($uid == $_user->getUsername()) {
 <?php
 if ($uid == $_user->getUsername()) {
 ?>
-<form name="archive" method="post" name="archiveEntryList" action="<?php echo PW_URL_INDEX; ?>?id=archiving;u=<?php echo $uid; ?>">
+<form name="archive" method="post" name="archiveEntryList" action="<?php echo PW_URL_INDEX; ?>?id=archiving&amp;u=<?php echo $uid; ?>">
 <input type="hidden" name="u" value="<?php echo $uid; ?>" />
 <input type="hidden" name="offset" value="<?php echo $offset; ?>" />
 <?php
@@ -52,8 +52,8 @@ if ($uid == $_user->getUsername()) {
 <?php
 if ($offset > 0) {
 ?>
-<a class="description" href="?id=archiving;u=<?php echo $uid; ?>;s=<?php echo $sort; ?>;d=<?php echo $cdir; ?>;os=0" title="first 50">|&lt;&lt;</a>&nbsp;
-<a class="description" href="?id=archiving;u=<?php echo $uid; ?>;s=<?php echo $sort; ?>;d=<?php echo $cdir; ?>;os=<?php echo (($offset-50) >= 0) ? $offset-50 : 0; ?>" title="previous 50">&lt;&lt;</a>&nbsp;
+<a class="description" href="?id=archiving&amp;u=<?php echo $uid; ?>&amp;s=<?php echo $sort; ?>&amp;d=<?php echo $cdir; ?>&amp;os=0" title="first 50">|&lt;&lt;</a>&nbsp;
+<a class="description" href="?id=archiving&amp;u=<?php echo $uid; ?>&amp;s=<?php echo $sort; ?>&amp;d=<?php echo $cdir; ?>&amp;os=<?php echo (($offset-50) >= 0) ? $offset-50 : 0; ?>" title="previous 50">&lt;&lt;</a>&nbsp;
 <?php
 }
 
@@ -61,8 +61,8 @@ echo '(' . ($offset + 1) . '-' . ((sizeof($entries) < $offset + 50) ? sizeof($en
 
 if (($offset + 50) < sizeof($entries)) {
 ?>
-&nbsp;<a class="description" href="?id=archiving;u=<?php echo $uid; ?>;s=<?php echo $sort; ?>;d=<?php echo $cdir; ?>;os=<?php echo $offset+50; ?>" title="next 50">&gt;&gt;</a>
-&nbsp;<a class="description" href="?id=archiving;u=<?php echo $uid; ?>;s=<?php echo $sort; ?>;d=<?php echo $cdir; ?>;os=<?php echo sizeof($entries)-50; ?>" title="last 50">&gt;&gt;|</a>
+&nbsp;<a class="description" href="?id=archiving&amp;u=<?php echo $uid; ?>&amp;s=<?php echo $sort; ?>&amp;d=<?php echo $cdir; ?>&amp;os=<?php echo $offset+50; ?>" title="next 50">&gt;&gt;</a>
+&nbsp;<a class="description" href="?id=archiving&amp;u=<?php echo $uid; ?>&amp;s=<?php echo $sort; ?>&amp;d=<?php echo $cdir; ?>&amp;os=<?php echo sizeof($entries)-50; ?>" title="last 50">&gt;&gt;|</a>
 <?php
 }
 ?>
@@ -76,13 +76,13 @@ if ($uid == $_user->getUsername()) {
 <?php
 } // if ($uid == $_user->getUsername()) {
 ?>
-<td align="center" class="columnheader"><a class="columnheader" href="?id=archiving;u=<?php echo $uid; ?>;s=ts;d=<?php echo $dir; ?>;os=<?php echo $offset; ?>" title="Sort by date">date</a></td>
-<td align="center" class="columnheader"><a class="columnheader" href="?id=archiving;u=<?php echo $uid; ?>;s=name;d=<?php echo $dir; ?>;os=<?php echo $offset; ?>" title="Sort by name">name</a></td>
+<td align="center" class="columnheader"><a class="columnheader" href="?id=archiving&amp;u=<?php echo $uid; ?>&amp;s=ts&amp;d=<?php echo $dir; ?>&amp;os=<?php echo $offset; ?>" title="Sort by date">date</a></td>
+<td align="center" class="columnheader"><a class="columnheader" href="?id=archiving&amp;u=<?php echo $uid; ?>&amp;s=name&amp;d=<?php echo $dir; ?>&amp;os=<?php echo $offset; ?>" title="Sort by name">name</a></td>
 <?php
 if ($uid == $_user->getUsername()) {
 ?>
-<td align="center" class="columnheader"><a class="columnheader" href="?id=archiving;u=<?php echo $uid; ?>;s=views;d=<?php echo $dir; ?>;os=<?php echo $offset; ?>" title="Sort by views">views</a></td>
-<td align="center" class="columnheader"><a class="columnheader" href="?id=archiving;u=<?php echo $uid; ?>;s=public;d=<?php echo $dir; ?>;os=<?php echo $offset; ?>" title="Sort by status">public <a title="Select All" class="columnheader" href="" onclick="return selectAll('perm');">(all)</a></td>
+<td align="center" class="columnheader"><a class="columnheader" href="?id=archiving&amp;u=<?php echo $uid; ?>&amp;s=views&amp;d=<?php echo $dir; ?>&amp;os=<?php echo $offset; ?>" title="Sort by views">views</a></td>
+<td align="center" class="columnheader"><a class="columnheader" href="?id=archiving&amp;u=<?php echo $uid; ?>&amp;s=public&amp;d=<?php echo $dir; ?>&amp;os=<?php echo $offset; ?>" title="Sort by status">public <a title="Select All" class="columnheader" href="" onclick="return selectAll('perm');">(all)</a></td>
 <td align="center" class="columnheader">&nbsp;</td>
 <?php
 } // if ($uid == $_user->getUsername()) {
@@ -100,8 +100,8 @@ if ($uid == $_user->getUsername()) {
 <?php
 } // if ($uid == $_user->getUsername()) {
 ?>
-<td align="center"><a href="<?php echo PW_URL_INDEX; ?>?id=<?php echo $uid; ?>;d=<?php echo $entries[$i][0]; ?>"><?php echo Planworld::getDisplayDate($entries[$i][0]); ?></a></td>
-<td align="left"><a href="<?php echo PW_URL_INDEX; ?>?id=<?php echo $uid; ?>;d=<?php echo $entries[$i][0]; ?>"><?php echo $entries[$i][1]; ?></a></td>
+<td align="center"><a href="<?php echo PW_URL_INDEX; ?>?id=<?php echo $uid; ?>&amp;d=<?php echo $entries[$i][0]; ?>"><?php echo Planworld::getDisplayDate($entries[$i][0]); ?></a></td>
+<td align="left"><a href="<?php echo PW_URL_INDEX; ?>?id=<?php echo $uid; ?>&amp;d=<?php echo $entries[$i][0]; ?>"><?php echo $entries[$i][1]; ?></a></td>
 <?php
 if ($uid == $_user->getUsername()) {
 ?>

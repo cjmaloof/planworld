@@ -14,7 +14,7 @@ if (is_array($news) && !empty($news)) {
   foreach ($news as $news_item) {
     $news_text .= "<p><strong>" . date("n/j/y, g:ia", $news_item['date']) . "</strong>";
     if ($_user->isAdmin()) {
-      $news_text .= " [<a href=\"" . PW_URL_INDEX . "?id=stuff;s=news;a=edit;nid={$news_item['id']}\">edit</a>]";
+      $news_text .= " [<a href=\"" . PW_URL_INDEX . "?id=stuff&amp;s=news&amp;a=edit&amp;nid={$news_item['id']}\">edit</a>]";
     }
     $news_text .= "<br />\n";
     $news_text .= "{$news_item['news']}</p>\n";
@@ -31,7 +31,7 @@ if (!empty($cookie['credit'])) {
   $cookie_text .= "<br />\nSubmitted by <a href=\"" . PW_URL_INDEX . "?id={$cookie['credit']}\">{$cookie['credit']}</a>\n";
 }
 if ($_user->isAdmin()) {
-  $cookie_text .= "[<a href=\"" . PW_URL_INDEX . "?id=stuff;s=cookie;a=edit;cid={$cookie['id']}\">edit</a>]<br />\n";
+  $cookie_text .= "[<a href=\"" . PW_URL_INDEX . "?id=stuff&amp;s=cookie&amp;a=edit&amp;cid={$cookie['id']}\">edit</a>]<br />\n";
 }
 
 if ($_user->hasOldUsername())
@@ -58,6 +58,6 @@ if ($_user->hasOldUsername())
 <p><strong>Cookie:</strong><br />
 <?php echo $cookie_text; ?>
 </p>
-<p>To submit cookies, <a href="<?php echo PW_URL_INDEX; ?>?id=stuff;s=cookie;a=add" title="Submit a cookie">click here</a>.</p>
+<p>To submit cookies, <a href="<?php echo PW_URL_INDEX; ?>?id=stuff&amp;s=cookie&amp;a=add" title="Submit a cookie">click here</a>.</p>
 <?php if (isset($news_text)) echo $news_text; ?>
 <?php if (isset($moveUsernames)) echo $moveUsernames; ?>

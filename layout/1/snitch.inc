@@ -32,7 +32,7 @@ if (!$_user->getSnitch()) {
 <?php if ($_user->getSnitchTracker()) { ?>
 <a href="<?php echo PW_URL_BASE; ?>snitchtracker.php">Export Snitch Tracker data</a><br />
 <? } // if ($_user->getSnitchTracker()) ?>
-<a href="?id=snitch;o=<?php (isset($_GET['o']) ? $_GET['o'] : 'd'); ?>;d=<?php (isset($_GET['d']) ? $_GET['d'] : 'a'); ?>;r=y" onclick="return confirm('The number of times each user has viewed your plan will be reset to zero.  Are you sure that you want to do this?');">Reset view counters</a>
+<a href="?id=snitch&amp;o=<?php (isset($_GET['o']) ? $_GET['o'] : 'd'); ?>&amp;d=<?php (isset($_GET['d']) ? $_GET['d'] : 'a'); ?>&amp;r=y" onclick="return confirm('The number of times each user has viewed your plan will be reset to zero.  Are you sure that you want to do this?');">Reset view counters</a>
 </p>
 <p>
 Your plan has had the following views by <strong>
@@ -44,9 +44,9 @@ Your plan has had the following views by <strong>
 <td class="border">
 <table cellspacing="1" cellpadding="3" border="0">
 <tr>
-<td align="center" class="columnheader"><a class="columnheader" href="?id=snitch;o=u;d=<?php echo $dir; ?>" title="Sort by username">username</a></td>
-<td align="center" class="columnheader"><a class="columnheader" href="?id=snitch;o=d;d=<?php echo $dir; ?>" title="Sort by most recently viewed">most recently viewed</a></td>
-<td align="center" class="columnheader"><a class="columnheader" href="?id=snitch;o=v;d=<?php echo $dir; ?>" title="Sort by total views">total views</a></td>
+<td align="center" class="columnheader"><a class="columnheader" href="?id=snitch&amp;o=u&amp;d=<?php echo $dir; ?>" title="Sort by username">username</a></td>
+<td align="center" class="columnheader"><a class="columnheader" href="?id=snitch&amp;o=d&amp;d=<?php echo $dir; ?>" title="Sort by most recently viewed">most recently viewed</a></td>
+<td align="center" class="columnheader"><a class="columnheader" href="?id=snitch&amp;o=v&amp;d=<?php echo $dir; ?>" title="Sort by total views">total views</a></td>
 <td align="center" class="columnheader">last update</td>
 </tr>
 <?php

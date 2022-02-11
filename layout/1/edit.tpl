@@ -8,7 +8,7 @@ if (isset($_user->editor)) {
 if ($shared) {
   echo " (others: ";
   for ($i=0; $i < sizeof($shared); $i++) {
-    echo "<a href=\"" . PW_URL_INDEX . "?id=edit_plan;u={$shared[$i]}\" title=\"edit {$shared[$i]}'s plan\">{$shared[$i]}</a>";
+    echo "<a href=\"" . PW_URL_INDEX . "?id=edit_plan&amp;u={$shared[$i]}\" title=\"edit {$shared[$i]}'s plan\">{$shared[$i]}</a>";
     if ($i < sizeof($shared) - 1)
       echo ", ";
   }

@@ -19,13 +19,13 @@ require_once($_base . 'lib/Planworld.php');
 <a href="<?php echo PW_URL_INDEX; ?>?id=help" class="navbar" title="Frequently Asked Questions">FAQ</a> |
 <a href="<?php echo PW_URL_INDEX; ?>?id=about" class="navbar" title="About Planworld">About</a>
 <?php if ($_user->isAdmin()) { ?>
-| <a href="<?php echo PW_URL_INDEX; ?>?id=stuff;s=admin" class="navbar" title="Planworld Administrator Functions">Admin</a>
+| <a href="<?php echo PW_URL_INDEX; ?>?id=stuff&amp;s=admin" class="navbar" title="Planworld Administrator Functions">Admin</a>
 <?php } // if ($_user->isAdmin()) ?>
 </td>
 <td align="right" class="navbar">
 <?php echo $_user->getUsername(); ?>: <a href="<?php echo PW_URL_INDEX . "?id=" . $_user->getUsername(); ?>" class="navbar" title="View your plan">View</a> |
 <a href="<?php echo PW_URL_INDEX; ?>?id=edit_plan" class="navbar" title="Edit your plan">Edit</a> | 
-<a href="<?php echo PW_URL_INDEX; ?>?id=archiving;u=<?php echo $_user->getUsername(); ?>" class="navbar" title="View your archives">Archives</a> | 
+<a href="<?php echo PW_URL_INDEX; ?>?id=archiving&amp;u=<?php echo $_user->getUsername(); ?>" class="navbar" title="View your archives">Archives</a> | 
 <a href="<?php echo PW_URL_INDEX; ?>?id=del_plan" class="navbar" title="Clear your plan" onclick="return confirmDelete();">Delete</a> | 
 <a href="/login/logout.php" title="Log out of planworld" onclick="return confirmLogout();">Logout</a>&nbsp;
 </td>

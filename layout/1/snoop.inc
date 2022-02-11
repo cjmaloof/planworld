@@ -24,9 +24,9 @@ if (isset($_GET['d']) && $_GET['d'] == 'a') {
 <td class="border">
 <table cellspacing="1" cellpadding="3" border="0">
 <tr>
-<td align="center" class="columnheader"><a class="columnheader" href="?id=snoop;o=u;d=<?php echo $dir; ?>" title="Sort by username">username</a></td>
-<td align="center" class="columnheader"><a class="columnheader" href="?id=snoop;o=d;d=<?php echo $dir; ?>" title="Sort by date">date</a></td>
-<td align="center" class="columnheader"><a class="columnheader" href="?id=snoop;o=l;d=<?php echo $dir; ?>" title="Sort by last update">last update</a></td>
+<td align="center" class="columnheader"><a class="columnheader" href="?id=snoop&amp;o=u&amp;d=<?php echo $dir; ?>" title="Sort by username">username</a></td>
+<td align="center" class="columnheader"><a class="columnheader" href="?id=snoop&amp;o=d&amp;d=<?php echo $dir; ?>" title="Sort by date">date</a></td>
+<td align="center" class="columnheader"><a class="columnheader" href="?id=snoop&amp;o=l&amp;d=<?php echo $dir; ?>" title="Sort by last update">last update</a></td>
 </tr>
 <?php
 foreach($snoop as $entry) {

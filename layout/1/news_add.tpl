@@ -27,9 +27,9 @@ if (!$_user->isAdmin()) {
   require_once($_base . "layout/{$skin['id']}/news_edit.tpl");
 } else {
 ?>
-<form method="post" action="<?php echo PW_URL_INDEX; ?>?id=stuff;s=news;a=add">
+<form method="post" action="<?php echo PW_URL_INDEX; ?>?id=stuff&amp;s=news&amp;a=add">
 <p class="subtitle">Add a News Entry</p>
-<p><a href="<?php echo PW_URL_INDEX; ?>?id=stuff;s=news;a=list">return to the list of news entries</a></p>
+<p><a href="<?php echo PW_URL_INDEX; ?>?id=stuff&amp;s=news&amp;a=list">return to the list of news entries</a></p>
 <?php if (isset($error_msg)) echo $error_msg; ?>
 <table border="0" cellpadding="0" cellspacing="0">
   <tr>

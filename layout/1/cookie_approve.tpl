@@ -27,7 +27,7 @@ if (!$_user->isAdmin()) {
 ?>
 <span class="subtitle">Fortune Cookie Approval Queue</span><br />
 <?php if (isset($msg)) echo $msg; ?>
-<form action="<?php echo PW_URL_INDEX; ?>?id=stuff;s=cookie;a=approve" method="POST">
+<form action="<?php echo PW_URL_INDEX; ?>?id=stuff&amp;s=cookie&amp;a=approve" method="POST">
 <table cellpadding="0" cellspacing="0" align="center" border="0">
 <tr>
 <td class="border">
@@ -48,7 +48,7 @@ if (isset($cookies) && is_array($cookies) && !empty($cookies)) {
 <?php if (!empty($cookie['author'])) echo "-- " . $cookie['author'] . "<br />\n"; ?>
 </td>
 <td align="center"><?php echo $cookie['credit']; ?></td>
-<td align="center"><a href="<?php echo PW_URL_INDEX; ?>?id=stuff;s=cookie;a=edit;cid=<?php echo $cookie['id']; ?>" title="edit this cookie">edit</a></td>
+<td align="center"><a href="<?php echo PW_URL_INDEX; ?>?id=stuff&amp;s=cookie&amp;a=edit&amp;cid=<?php echo $cookie['id']; ?>" title="edit this cookie">edit</a></td>
 </tr>
 <?php
   } // foreach($cookies as $cookie)

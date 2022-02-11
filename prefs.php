@@ -12,13 +12,12 @@ if (!isset($_POST)) {
   exit();
 }
 
-
 // standard response (overridden by certain preference changes)
-$location = PW_URL_INDEX . "?id=prefs;err=0";
+$location = PW_URL_INDEX . "?id=prefs&err=0";
 
 /* set the default archiving policy */
 if ($_POST['archive'] == 'N' && ($_user->getPreference('journal') || $_POST['journal'] == 'Y')) {
-  $location = PW_URL_INDEX . "?id=prefs;err=2";
+  $location = PW_URL_INDEX . "?id=prefs&err=2";
 } else {
   $_user->setArchive($_POST['archive']);
 }
@@ -60,7 +59,7 @@ if (!$_user->getPreference('journal') && isset($_POST['journal']) && $_POST['jou
   // force archiving to private if off
   if ($_user->getArchive() == 'N') {
     $_user->setArchive('P');
-    $location = PW_URL_INDEX . "?id=prefs;err=1";
+    $location = PW_URL_INDEX . "?id=prefs&err=1";
   }
 } else if (isset($_POST['journal']) && $_POST['journal'] == 'N' && $_user->getPreference('journal')) {
   $_user->setPreference('journal', 'false');

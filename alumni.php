@@ -14,7 +14,7 @@ if (!isset($_POST) || !isset($_POST["alumniMove"])) {
 }
 
 // standard response (overridden by errors)
-$location = PW_URL_INDEX . "?id=alumni;err=0";
+$location = PW_URL_INDEX . "?id=alumni&err=0";
 
 $alumni = $_user->getUsername();
 $alumni_id = $_user->getUserID();
@@ -31,14 +31,14 @@ else {
 
 	if (($year == "UNKNOWN" || $year > 6) || ($alumni_id < $nt_id)) 	//invalid user						
 	{
-		$location = PW_URL_INDEX . "?id=alumni;err=1";
+		$location = PW_URL_INDEX . "?id=alumni&err=1";
 		header("Location: " . $location);
 		exit();
 	}	
 }
 
 if (!Planworld::isUser($nt, true)) {	//not a user at all
-	$location = PW_URL_INDEX . "?id=alumni;err=1";
+	$location = PW_URL_INDEX . "?id=alumni&err=1";
 	header("Location: " . $location);
 	exit();
 }
@@ -148,7 +148,7 @@ mail('npdoty@gmail.com', "planworld alumni move log", "type: ".$_POST["alumniMov
 //comment this out because there's a common unimportant error (DB error: already exists) that I don't want to scare people with
 //if ($errors != "") {
 //	echo "There were unexpected errors.  This may not indicate any failure to move your account, but please email a NOTE admin (note@amherst.edu) with the text below:<br />".$errors;
-//	$location = PW_URL_INDEX . "?id=alumni;err=1";
+//	$location = PW_URL_INDEX . "?id=alumni&err=1";
 //}
 
 header("Location: " . $location);

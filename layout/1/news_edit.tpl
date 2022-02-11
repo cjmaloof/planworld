@@ -31,10 +31,10 @@ if (!$_user->isAdmin()) {
     $news = News::get($_GET['nid']);
   }
 ?>
-<form method="post" action="<?php echo PW_URL_INDEX; ?>?id=stuff;s=news;a=edit;nid=<?php echo $_GET['nid']; ?>">
+<form method="post" action="<?php echo PW_URL_INDEX; ?>?id=stuff&amp;s=news&amp;a=edit&amp;nid=<?php echo $_GET['nid']; ?>">
 <input type="hidden" name="date" value="<?php echo $news['date']; ?>" />
 <p class="subtitle">Edit a News Entry</p>
-<p><a href="<?php echo PW_URL_INDEX; ?>?id=stuff;s=news;a=list">return to the list of news entries</a></p>
+<p><a href="<?php echo PW_URL_INDEX; ?>?id=stuff&amp;s=news&amp;a=list">return to the list of news entries</a></p>
 <?php if (isset($error_msg)) echo $error_msg; ?>
 <table border="0" cellpadding="0" cellspacing="0">
   <tr>
