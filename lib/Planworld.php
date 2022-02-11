@@ -30,7 +30,7 @@ class Planworld {
    * @param params Parameters to use.
    * @private
    */
-  function _call ($nodeinfo, $method, $params=null) {
+  static function _call ($nodeinfo, $method, $params=null) {
     return xu_rpc_http_concise(array('method' => $method,
                                      'args'   => $params, 
                                      'host'   => $nodeinfo['Hostname'], 
@@ -43,7 +43,7 @@ class Planworld {
    * bool Planworld::isError ($result)
    * return whether a result (code) is an error
    */
-  function isError ($res) {
+  static function isError ($res) {
     if ($res < 0)
       return true;
     else
@@ -77,7 +77,7 @@ class Planworld {
    * int Planworld::nameToID ($uid)
    * converts textual $uid to numeric representation
    */
-  function nameToID ($uid) {
+  static function nameToID ($uid) {
     // persistent lookup table
     static $table;
 
@@ -115,7 +115,7 @@ class Planworld {
    * string Planworld::idToName ($uid)
    * converts numeric $uid to string representation
    */
-  function idToName ($uid) {
+  static function idToName ($uid) {
     // persistent lookup table
     static $table;
 
@@ -187,7 +187,7 @@ class Planworld {
    * bool Planworld::isWorldViewable ($uid)
    * returns whether $uid has a world-viewable plan
    */
-  function isWorldViewable ($uid) {
+  static function isWorldViewable ($uid) {
     $dbh = DBUtils::_connect();
 
     if (is_int($uid)) {
@@ -210,7 +210,7 @@ class Planworld {
    * bool Planworld::isAdmin ($uid)
    * returns whether $uid is an admin
    */
-  function isAdmin ($uid) {
+  static function isAdmin ($uid) {
     $admin = Planworld::getPreference($uid, 'admin');
     return ($admin == 'true') ? true : false;
   }
@@ -219,7 +219,7 @@ class Planworld {
    * void Planworld::query ($query)
    * execute an arbitrary query (potentially bad)
    */
-  function query ($query, $col=null) {
+  static function query ($query, $col=null) {
     $dbh = DBUtils::_connect();
 
     /* execute the query */
@@ -240,7 +240,7 @@ class Planworld {
    * int Planworld::getRandomUser ()
    * pick a user (with a plan) at random
    */
-  function getRandomUser() {
+  static function getRandomUser() {
     $dbh = DBUtils::_connect();
 
     $query = "SELECT uid FROM plans ORDER BY " . PW_RANDOM_FN . " LIMIT 1";
@@ -259,7 +259,7 @@ class Planworld {
    * array Planworld::getNodeInfo ($host)
    * Returns node information for $host.
    */
-  function getNodeInfo ($host) {
+  static function getNodeInfo ($host) {
     $dbh = DBUtils::_connect();
 
     $query = "SELECT name, hostname, path, port, version FROM nodes WHERE name='{$host}'";
@@ -285,7 +285,7 @@ class Planworld {
    * array Planworld::getNodes ()
    * Return the node list.
    */
-  function getNodes () {
+  static function getNodes () {
     $dbh = DBUtils::_connect();
 
     $query = "SELECT name, hostname, path, port, version FROM nodes ORDER BY name";
@@ -393,7 +393,7 @@ class Planworld {
     return $plan;
   }
 
-  function getAllUsers () {
+  static function getAllUsers () {
     $dbh = DBUtils::_connect();
 
     $query = "SELECT username FROM users WHERE last_login!=0 AND remote='N' ORDER BY username";
@@ -411,7 +411,7 @@ class Planworld {
     }
   }
 
-  function getAllUsersWithPlans ($start = null) {
+  static function getAllUsersWithPlans ($start = null) {
     $dbh = DBUtils::_connect();
 
     $query = "SELECT username FROM users, plans WHERE users.id=plans.uid";
@@ -439,7 +439,7 @@ class Planworld {
   /**
    * Fetch the $num most recent updates.
    */
-  function getLastUpdates ($num) {
+  static function getLastUpdates ($num) {
     $dbh = DBUtils::_connect();
 
     $query = "SELECT username, last_update FROM users WHERE remote='N' ORDER BY last_update DESC LIMIT $num";
@@ -459,7 +459,7 @@ class Planworld {
   /**
    * Fetch the $num newest users.
    */
-  function getNewUsers ($num) {
+  static function getNewUsers ($num) {
     $dbh = DBUtils::_connect();
 
     $query = "SELECT username, first_login, last_update FROM users WHERE remote='N' AND last_login > 0 ORDER BY first_login DESC LIMIT $num";
@@ -480,7 +480,7 @@ class Planworld {
    * int | array(int) Planworld::getLastLogin ($uid, $host)
    * Gets the last login time for $uid (from $host, if applicable)
    */
-  function getLastLogin ($uid, $host=null) {
+  static function getLastLogin ($uid, $host=null) {
     $dbh = DBUtils::_connect();
 
     if (is_array($uid) && !isset($host)) {
@@ -584,7 +584,7 @@ class Planworld {
    * int | array(int) Planworld::getLastUpdate ($uid, $host)
    * Gets the last update time for $uid (from $host, if applicable)
    */
-  function getLastUpdate ($uid, $host=null) {
+  static function getLastUpdate ($uid, $host=null) {
     $dbh = DBUtils::_connect();
 
     if (is_array($uid) && !isset($host)) {
@@ -686,7 +686,7 @@ class Planworld {
    * string Planworld::unwrap ($text)
    * Remove <pre> tags from $text.
    */
-  function unwrap ($text) {
+  static function unwrap ($text) {
     if (preg_match('/^\<pre\>(.*)\<\/pre\>\s*$/misAD', $text, $matches)) {
       return $matches[1];
     } else {
@@ -694,59 +694,64 @@ class Planworld {
     }
   }
 
-    /**
-     * Fetches a preference for this user.
-     */
-    function getPreference ($uid, $name) {
-      $dbh = DBUtils::_connect();
-      $query = "SELECT value FROM preferences WHERE uid={$uid} AND name='{$name}'";
-      
-      /* execute the query */
-      $result = $dbh->query($query);
-      if ($result) {
-        $row = $result->fetch();
-        return (isset($row['value']) ? $row['value'] : false);
-      } else {
-        return PLANWORLD_ERROR;
-      }
+  /**
+   * Fetches a preference for this user.
+   */
+  static function getPreference ($uid, $name) {
+    $dbh = DBUtils::_connect();
+    $query = "SELECT value FROM preferences WHERE uid={$uid} AND name='{$name}'";
+    
+    /* execute the query */
+    $result = $dbh->query($query);
+    if ($result) {
+      $row = $result->fetch();
+      return (isset($row['value']) ? $row['value'] : false);
+    } else {
+      return PLANWORLD_ERROR;
     }
+  }
 
-    /**
-     * Returns the displayable form of the passed divider.
-     */
-    function getDisplayDivider ($divider, $ts = null) {
-      if (isset($ts)) {
-        return preg_replace('/[Dd][Aa][Tt][Ee]\[([^\'\]]+)\]/e',"date('\\1',{$ts})",$divider);
-      } else {
-        return preg_replace('/[Dd][Aa][Tt][Ee]\[([^\'\]]+)\]/e',"date('\\1')",$divider);
-      }
+  /**
+   * Returns the displayable form of the passed divider.
+   */
+  static function getDisplayDivider ($divider, $ts = null) {
+    if (isset($ts)) {
+      $result = preg_replace_callback('/[Dd][Aa][Tt][Ee]\[([^\'\]]+)\]/',
+      function ($matches) use ($ts) { return date($matches[1], $ts); },
+      $divider);
+    } else {
+      $result = preg_replace_callback('/[Dd][Aa][Tt][Ee]\[([^\'\]]+)\]/',
+      function ($matches) { return date($matches[1]); },
+      $divider);
     }
+    return $result;
+  }
 
-    function getType ($text) {
-      if (preg_match('/^\<pre\>(.*)\<\/pre\>$/misAD', $text)) {
-        return 'text';
-      } else {
-        return 'html';
-      }
+  static function getType ($text) {
+    if (preg_match('/^\<pre\>(.*)\<\/pre\>$/misAD', $text)) {
+      return 'text';
+    } else {
+      return 'html';
     }
+  }
 
-    function isText ($text) {
-      if (Planworld::getType($text) == 'text')
-        return true;
-      else
-        return false;
-    }
+  static function isText ($text) {
+    if (Planworld::getType($text) == 'text')
+      return true;
+    else
+      return false;
+  }
 
-    function isHTML ($text) {
-      return !Planworld::isText($text);
-    }
+  static function isHTML ($text) {
+    return !Planworld::isText($text);
+  }
 
-    function teaser ($text) {
-      if (strlen($text) > 19)
-        return substr($text, 0, min(strpos($text, " ", 16), 32)) . "...";
-      else
-        return $text;
-    }
+  static function teaser ($text) {
+    if (strlen($text) > 19)
+      return substr($text, 0, min(strpos($text, " ", 16), 32)) . "...";
+    else
+      return $text;
+  }
 
 }
 
