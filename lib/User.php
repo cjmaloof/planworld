@@ -212,7 +212,7 @@ class User {
       $this->dbh->query("DELETE FROM plans WHERE uid=" . $this->userID);
       
       /* update the last update time */
-      $this->dbh->query("UPDATE users SET last_update=" . mktime() . " WHERE id=" . $this->userID);
+      $this->dbh->query("UPDATE users SET last_update=" . time() . " WHERE id=" . $this->userID);
       
       /* clear snoop references */
       Snoop::clearReferences($this->userID);
@@ -237,18 +237,18 @@ class User {
       
       if ($this->snitchTracker) {
         /* add an entry to the snitch tracker */
-        $query = "INSERT INTO snitchtracker (uid, s_uid, viewed) VALUES (" . $this->userID . ", " . $user->getUserID() . ", " . mktime() . ")";
+        $query = "INSERT INTO snitchtracker (uid, s_uid, viewed) VALUES (" . $this->userID . ", " . $user->getUserID() . ", " . time() . ")";
         $this->dbh->query($query);
       }
 
-      $query = "UPDATE snitch SET last_view=" . mktime() . ", views=views + 1 WHERE uid=" . $this->userID . " AND s_uid=" . $user->getUserID();
+      $query = "UPDATE snitch SET last_view=" . time() . ", views=views + 1 WHERE uid=" . $this->userID . " AND s_uid=" . $user->getUserID();
 
       /* attempt to execute the query */
       $result = $this->dbh->query($query);
       if (isset($result) && !DB::isError($result)) {
         if ($this->dbh->affectedRows() < 1) {
           /* query failed; use this instead */
-          $this->dbh->query("INSERT INTO snitch (uid, s_uid, last_view, views) VALUES (" . $this->userID . ", " . $user->getUserID() . ", " . mktime() . ", 1)");
+          $this->dbh->query("INSERT INTO snitch (uid, s_uid, last_view, views) VALUES (" . $this->userID . ", " . $user->getUserID() . ", " . time() . ", 1)");
         } else {
           return true;
         }
@@ -1253,7 +1253,7 @@ class User {
      */
     function setPlan ($plan, $archive='N', $name = '', $timestamp = null) {
       if (!isset($timestamp))
-        $timestamp = mktime();
+        $timestamp = time();
 
       /* save it in the archives */
       if ($archive == 'P' || $archive == 'Y') {

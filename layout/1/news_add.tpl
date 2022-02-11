@@ -20,7 +20,7 @@ if (!$_user->isAdmin()) {
     $live = false;
   }
   
-  $nid = News::add($_POST['content'], mktime(), $live);
+  $nid = News::add($_POST['content'], time(), $live);
   $news = News::get($nid);
   $passthru = true;
 

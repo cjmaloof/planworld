@@ -13,7 +13,7 @@ class Send {
   function getMessages ($uid, $to_uid) {
     $dbh = DBUtils::_connect();
 
-    $query = "UPDATE send SET seen=" . mktime() . " WHERE uid={$to_uid} AND to_uid={$uid} AND seen=0";
+    $query = "UPDATE send SET seen=" . time() . " WHERE uid={$to_uid} AND to_uid={$uid} AND seen=0";
     $dbh->query($query);
 
     $query = "SELECT uid, to_uid, sent, message FROM send WHERE (uid={$uid} AND to_uid={$to_uid}) OR (uid={$to_uid} AND to_uid={$uid}) ORDER BY sent ASC";
@@ -50,7 +50,7 @@ class Send {
                                 'uri'    => $nodeinfo['Path'], 
                                 'port'   => $nodeinfo['Port'], 
                                 'debug'  => 0));
-      $query = "INSERT INTO send (uid, to_uid, sent, seen, message) VALUES ({$uid}, {$to_uid}, " . mktime() . ", " . mktime() . ", '" . htmlentities(strip_tags(addslashes($message))) . "')";
+      $query = "INSERT INTO send (uid, to_uid, sent, seen, message) VALUES ({$uid}, {$to_uid}, " . time() . ", " . time() . ", '" . htmlentities(strip_tags(addslashes($message))) . "')";
     } else {
       $fwd = Planworld::getPreference($to_uid, 'send_forward');
       if ($fwd) {
@@ -79,10 +79,10 @@ class Send {
                                     'debug'  => 0));
         } else {
           $fwd_message = "[fwd:" . Planworld::idToName($to_uid) . "] " . $message;
-          Planworld::query("INSERT INTO send (uid, to_uid, sent, message) VALUES ({$uid}, {$fwd_uid}, " . mktime() . ", '" . htmlentities(strip_tags(addslashes($fwd_message))) . "')");
+          Planworld::query("INSERT INTO send (uid, to_uid, sent, message) VALUES ({$uid}, {$fwd_uid}, " . time() . ", '" . htmlentities(strip_tags(addslashes($fwd_message))) . "')");
         }
       }
-      $query = "INSERT INTO send (uid, to_uid, sent, message) VALUES ({$uid}, {$to_uid}, " . mktime() . ", '" . htmlentities(strip_tags(addslashes($message))) . "')";
+      $query = "INSERT INTO send (uid, to_uid, sent, message) VALUES ({$uid}, {$to_uid}, " . time() . ", '" . htmlentities(strip_tags(addslashes($message))) . "')";
     }
     Planworld::query($query);
   }

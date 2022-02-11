@@ -26,15 +26,15 @@ if ($_GET) {
     if (is_array($add)) {
       /* removing a list of users */
       foreach ($add as $u) {
-	$_user->planwatch->remove((int) $u);
+        $_user->planwatch->remove((int) $u);
       }
     } else {
       /* removing an individual user (from finger page) */
       $_user->planwatch->remove($add);
 
       if ($_GET['trans'] == 't') {
-	/* transparent removal */
-	$url = PW_URL_INDEX . "?id=" . $add;
+        /* transparent removal */
+        $url = PW_URL_INDEX . "?id=" . $add;
       }
     }
   } else if (isset($_GET['move']) && !empty($_GET['move'])) {

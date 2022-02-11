@@ -60,9 +60,6 @@ class Planworld {
     }
 
     $dbh = DBUtils::_connect();
-    if (!$dbh) {
-      return PLANWORLD_ERROR;
-    }
 
     if (strstr($uid, '@')) {
       $remote = 'Y';
@@ -71,6 +68,7 @@ class Planworld {
     }
 
     $id = DBUtils::insertUser($dbh, $uid, $remote);
+    return $id;
   }
   
   /**

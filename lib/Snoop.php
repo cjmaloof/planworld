@@ -45,7 +45,7 @@ class Snoop {
     $dbh = DBUtils::_connect();
 
     if (!isset($date)) {
-      $date = mktime();
+      $date = time();
     }
 
     if ($from == 0 || $from == '' || $to == 0 || $to == '')

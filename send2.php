@@ -51,7 +51,7 @@ $messages = Send::getMessages($uid, $to_uid);
 <body onload="document.send.message.focus();">
 <div align="center">
 <img src="/planworld/images/send.gif" alt="send" align="center" width="119" height="34" />
-<blockquote>send with <?php echo $_REQUEST['id']; ?> (<?php echo Planworld::getDisplayDate(mktime(), true); ?>)</blockquote>
+<blockquote>send with <?php echo $_REQUEST['id']; ?> (<?php echo Planworld::getDisplayDate(time(), true); ?>)</blockquote>
 </div>
 <?php
 if ($to_uid == PLANWORLD_ERROR) {

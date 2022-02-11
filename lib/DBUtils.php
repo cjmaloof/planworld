@@ -31,7 +31,7 @@ class DBUtils {
     $query = $dbh->prepare("INSERT INTO users (id, username, remote, first_login) VALUES (:nextId, :uid, :remote, :time)");
     $queryArray = array('nextId' => $id, 'uid' => $uid, 'remote' => $remote, 'time' => time());
     $query->execute($queryArray);
-    return $id;
+    return (int) $id;
   }
   
   static function userExists($dbh, $uid) {

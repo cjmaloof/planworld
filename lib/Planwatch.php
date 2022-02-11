@@ -35,7 +35,6 @@ class Planwatch {
   function load ($sort = null) {
     /* assemble the query */
     $query = "SELECT u.username, u.id, p.last_view, u.last_update, g.name AS name, g.gid AS gid, g.uid AS owner, m.seen AS hasmessage FROM (pw_groups AS g, planwatch AS p, users AS u) LEFT JOIN message AS m ON (m.uid=p.w_uid AND m.to_uid=p.uid) WHERE p.uid=" . $this->user->getUserID() . " AND p.w_uid=u.id AND g.gid=p.gid ORDER BY g.pos, g.name,";
-
     if (!isset($sort)) {
       $sort = $this->user->getWatchOrder();
     }
@@ -188,7 +187,7 @@ class Planwatch {
 
       /* update in-place and mark as changed */
       /* set view time to now */
-      $this->planwatch[$uid->getUsername()][2] = mktime();
+      $this->planwatch[$uid->getUsername()][2] = time();
       /* set changed flag to true */
       $this->planwatch[$uid->getUsername()][3] = true;
 
@@ -248,7 +247,7 @@ class Planwatch {
    * Moves $uid into group $gid.
    */
   function move ($uid, $gid) {
-    if (is_int($uid)) {
+    if (is_numeric($uid)) {
       $query = "UPDATE planwatch SET gid={$gid} WHERE w_uid={$uid} AND uid=" . $this->user->getUserID();
     } else {
       $query = "UPDATE planwatch SET gid={$gid} WHERE w_uid=" . Planworld::nameToID($uid) . " AND uid=" . $this->user->getUserID();
@@ -296,7 +295,7 @@ class Planwatch {
   function remove ($uid) {
     unset($this->planwatch[$uid]);
 
-    if (is_int($uid)) {
+    if (is_numeric($uid)) {
       $query = "DELETE FROM planwatch WHERE w_uid={$uid} AND uid=" . $this->user->getUserID();
     } else {
       $query = "DELETE FROM planwatch WHERE w_uid=" . Planworld::nameToID($uid) . " AND uid=" . $this->user->getUserID();
@@ -311,7 +310,7 @@ class Planwatch {
   function add ($uid) {
     /* no need to fill this entry, as the planwatch will probably be reloaded before it's used */
 
-    if (is_int($uid)) {
+    if (is_numeric($uid)) {
       $query = "INSERT INTO planwatch (w_uid, uid) VALUES ({$uid}," . $this->user->getUserID() . ")";
     } else {
       $query = "INSERT INTO planwatch (w_uid, uid) VALUES (" . Planworld::nameToID($uid) . "," . $this->user->getUserID() . ")";
