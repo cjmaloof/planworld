@@ -335,14 +335,14 @@ class Archive {
       }
 
       $query .= ")";
-      
       /* execute the query */
       $result = $dbh->query($query);
       if ($result) {
         if ($result->rowCount() < 1) {
           return ARCHIVE_EMPTY;
         } else {
-          $query = "UPDATE users SET archive_size_pub=archive_size_pub + 1 WHERE id={$uid}";
+          $archiveSizePub = Archive::getArchiveSizePub($dbh, $uid);
+          $query = "UPDATE users SET archive_size_pub=$archiveSizePub WHERE id={$uid}";
           Planworld::query($query);
           return ARCHIVE_OK;
         }
@@ -383,7 +383,8 @@ class Archive {
         if ($result->rowCount() < 1) {
           return ARCHIVE_EMPTY;
         } else {
-          $query = "UPDATE users SET archive_size_pub=archive_size_pub - 1 WHERE id={$uid}";
+          $archiveSizePub = Archive::getArchiveSizePub($dbh, $uid);
+          $query = "UPDATE users SET archive_size_pub=$archiveSizePub WHERE id={$uid}";
           Planworld::query($query);
           return ARCHIVE_OK;
         }
@@ -393,6 +394,13 @@ class Archive {
     } else {
       return Archive::_set('pub', "'N'", $uid, $ts);
     }
+  }
+  
+  // just use 0 or 1, the exact count doesn't appear to matter
+  static function getArchiveSizePub($dbh, $uid) {
+    $query = "SELECT uid FROM archive WHERE pub='Y' AND uid={$uid} LIMIT 1";
+    $result = $dbh->query($query);
+    return $result->fetch() ? 1 : 0;
   }
 
   /**
