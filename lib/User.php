@@ -162,7 +162,38 @@ class User {
      */
     function save () {
       if ($this->changed) {
-        DBUtils::saveUser($this->dbh, $this);
+        /* column <-> variable mapping */
+        $info = array();
+        $info['username'] = "'{$this->username}'";
+        $info['remote'] = ($this->remoteUser) ? "'Y'" : "'N'";
+        $info['world'] = ($this->world) ? "'Y'" : "'N'";
+        $info['snitch'] = ($this->snitch) ? "'Y'" : "'N'";
+        $info['snitch_views'] = &$this->snitchDisplayNum;
+        $info['archive'] = "'" . $this->archive . "'";
+        $info['watch_order'] = "'{$this->watchOrder}'";
+        $info['theme_id'] = &$this->theme;
+        $info['snitch_activated'] = &$this->snitchEnabled;
+        $info['last_login'] = &$this->lastLogin;
+        $info['last_update'] = &$this->lastUpdate;
+        $info['last_ip'] = "'{$this->last_ip}'";
+        
+        /* assemble the query */
+        $pair = array();
+        foreach ($info as $key => $value) {
+          $pair[] = $key . '=' . $value;
+        }
+        $query = 'UPDATE users SET ';
+        $query .= implode(',', $pair);
+        if (isset($this->username)) $query .= " WHERE username='{$this->username}'";
+        else if (isset($this->userID)) $query .= " WHERE id='{$this->userID}'";
+        else return false;
+
+        /* execute the query */
+        $result = $this->dbh->query($query);
+        if (!$result) {
+          return false;
+        }
+        
         /* data has now been synchronized */
         $this->changed = false;
       }
@@ -245,8 +276,8 @@ class User {
 
       /* attempt to execute the query */
       $result = $this->dbh->query($query);
-      if (isset($result) && !DB::isError($result)) {
-        if ($this->dbh->affectedRows() < 1) {
+      if ($result) {
+        if ($result->rowCount() < 1) {
           /* query failed; use this instead */
           $this->dbh->query("INSERT INTO snitch (uid, s_uid, last_view, views) VALUES (" . $this->userID . ", " . $user->getUserID() . ", " . time() . ", 1)");
         } else {
@@ -1441,11 +1472,10 @@ class User {
 
       /* execute the query */
       if ($this->snitchDisplayNum > 0) {
-        $result = $this->dbh->limitQuery($query, 0, $this->snitchDisplayNum);
-        $this->dbh->limit_from = $this->dbh->limit_count = null;
-      } else {
-        $result = $this->dbh->query($query);
+        $query .= " LIMIT {$this->snitchDisplayNum}";
       }
+      $result = $this->dbh->query($query);
+
       if ($result) {
         /* load up this user's planwatch to do some checking against it */
         $this->loadPlanwatch();

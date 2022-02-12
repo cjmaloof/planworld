@@ -71,40 +71,5 @@ class DBUtils {
     return $query->fetch();
   }
   
-  static function saveUser($dbh, $user) {
-    /*
-    $info = array();
-    $info['username'] = "'{$this->username}'";
-    $info['remote'] = ($this->remoteUser) ? "'Y'" : "'N'";
-    $info['world'] = ($this->world) ? "'Y'" : "'N'";
-    $info['snitch'] = ($this->snitch) ? "'Y'" : "'N'";
-    $info['snitch_views'] = &$this->snitchDisplayNum;
-    $info['archive'] = "'" . $this->archive . "'";
-    $info['watch_order'] = "'{$this->watchOrder}'";
-    $info['theme_id'] = &$this->theme;
-    $info['snitch_activated'] = &$this->snitchEnabled;
-    $info['last_login'] = &$this->lastLogin;
-    $info['last_update'] = &$this->lastUpdate;
-    $info['last_ip'] = "'{$this->last_ip}'";
-    */
-    
-    $query = $dbh->prepare("UPDATE users SET username=:username, remote=:remote, world=:world, snitch=:snitch, "
-           . "snitch_views=:snitch_views, archive=:archive, watch_order=:watch_order, theme_id=:theme_id, "
-           . "snitch_activated=:snitch_activated, last_login=:last_login, last_update=:last_update, last_ip=:last_ip");
-    $queryArray = array(
-          'username' => $user->username,
-          'remote' => ($user->remoteUser) ? "Y" : "N",
-          'world' => ($user->world) ? "Y" : "N",
-          'snitch' => ($user->snitch) ? "Y" : "N",
-          'snitch_views' => $user->snitchDisplayNum,
-          'archive' => $user->archive,
-          'watch_order' => $user->watchOrder,
-          'theme_id' => $user->theme,
-          'snitch_activated' => $user->snitchEnabled,
-          'last_login' => $user->lastLogin,
-          'last_update' => $user->lastUpdate,
-          'last_ip' => $user->last_ip);
-    $query->execute($queryArray);
-  }
 }
 ?>

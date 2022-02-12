@@ -21,7 +21,6 @@ if ($_POST['archive'] == 'N' && ($_user->getPreference('journal') || $_POST['jou
 } else {
   $_user->setArchive($_POST['archive']);
 }
-
 /* turn snitch on or off (User class will handle starting / clearing */
 $_user->setSnitch(($_POST['snitch'] == 'Y') ? true : false);
 
@@ -99,9 +98,9 @@ if ($_user->getPreference('shared')) {
     foreach ($shared_list as $u) {
       $u = trim($u);
       if (empty($u))
-	continue;
+        continue;
       if (Planworld::isUser($u))
-	$_user->setPreference('shared_' . $u, 'true');
+        $_user->setPreference('shared_' . $u, 'true');
     }
   }
 }
