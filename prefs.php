@@ -21,7 +21,6 @@ if ($_POST['archive'] == 'N' && ($_user->getPreference('journal') || $_POST['jou
 } else {
   $_user->setArchive($_POST['archive']);
 }
-
 /* turn snitch on or off (User class will handle starting / clearing */
 $_user->setSnitch(($_POST['snitch'] == 'Y') ? true : false);
 
