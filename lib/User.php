@@ -1176,7 +1176,7 @@ class User {
       $out .= "<tt>Login name: <strong>{$this->username}</strong>";
       if ($this->isUser() && $this->isSharedFor($user))
         $out .= " (<a href=\"" . PW_URL_INDEX . "?id=edit_plan&amp;u={$this->username}\">edit</a>)";
-      $out .= " (<a href=\"#\" onclick=\"return send('" . $this->username . "')&amp;\" title=\"send to " . $this->username . "\">send</a>)<br />\n";
+      $out .= " (<a href=\"#\" onclick=\"return send('" . $this->username . "');\" title=\"send to " . $this->username . "\">send</a>)<br />\n";
 
       /* user doesn't exist */
       if (!$this->isUser() || ($this->lastLogin == 0 && $this->lastUpdate == 0)) {

@@ -27,7 +27,7 @@ function confirmLogout() {
   return confirm("Are you sure you wish to leave planworld?");
 }
 function send (u) {
-  window.open('<?php echo PW_URL_BASE; ?>send/' + u + '#form', 'send', 'width=450,height=400,location=no,menubar=no,toolbar=no,status=no,scrollbars=yes');
+  window.open('<?php echo PW_URL_BASE; ?>send.php/' + u + '#form', 'send', 'width=450,height=400,location=no,menubar=no,toolbar=no,status=no,scrollbars=yes');
   return false;
 }
 //-->

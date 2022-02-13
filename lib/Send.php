@@ -10,7 +10,7 @@ class Send {
   /**
    * Return all messages between $uid and $to_uid
    */
-  function getMessages ($uid, $to_uid) {
+  static function getMessages ($uid, $to_uid) {
     $dbh = DBUtils::_connect();
 
     $query = "UPDATE send SET seen=" . time() . " WHERE uid={$to_uid} AND to_uid={$uid} AND seen=0";
@@ -38,7 +38,7 @@ class Send {
   /**
    * Send a message from $uid to $to_uid
    */
-  function sendMessage ($uid, $to_uid, $message) {
+  static function sendMessage ($uid, $to_uid, $message) {
     if (Planworld::isRemoteUser($to_uid)) {
       list($to_user, $host) = split("@", Planworld::idToName($to_uid));
       $from_user = Planworld::idToName($uid) . "@" . PW_NAME;
