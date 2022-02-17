@@ -363,8 +363,8 @@ Enable:
 <input class="inputRadio" type="radio" name="world" value="Y"<?php if ($_user->getWorld()) echo ' checked="checked"'; ?> />
 </td>
 <td rowspan=2 valign=top class="description">
-<?php /* Amherst-specific text */ ?>
-<p>If your plan is <strong>World Viewable</strong>, non-Amherst users will be able to view your plan using a finger gateway. E.g., <a href="http://www.amherst.edu/cgi-bin/finger?marx@note.amherst.edu" title="Finger marx" target="_blank">marx's plan</a>.</p>
+<?php /* Amherst-specific text JLO2 Edit 10/13/09*/ ?>
+<p>If your plan is <strong>World Viewable</strong>, users at non-Amherst nodes (such as planwatch.org and planworld.net) will be able to view your plan.</p>
 </td>
 </tr>
 <tr>

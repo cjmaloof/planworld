@@ -17,7 +17,11 @@ if ($to_edit->isShared()) {
 
 ?>
 <span class="subtitle">Preview</span><br />
-<form action="parser.php" method="post">
+<?php if (isset($_preview_from_db_error)) { ?>
+<p>A database error occurred.  Returning you to the preview page so you can try again.</p>
+<?php } ?>
+
+<form id = "editForm" action="parser.php" method="post">
 <p>You can either <a href="#edit" title="Edit your plan">edit your plan</a> or post it.</p>
 <input class="inputButton" type="submit" name="post" value="fixplan" />&nbsp;<input class="inputButton" type="submit" name="cancel" value="cancel" /><br /><br />
 <hr />

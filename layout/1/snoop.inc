@@ -28,11 +28,13 @@ if (isset($_GET['d']) && $_GET['d'] == 'a') {
 <td align="center" class="columnheader"><a class="columnheader" href="?id=snoop&amp;o=d&amp;d=<?php echo $dir; ?>" title="Sort by date">date</a></td>
 <td align="center" class="columnheader"><a class="columnheader" href="?id=snoop&amp;o=l&amp;d=<?php echo $dir; ?>" title="Sort by last update">last update</a></td>
 </tr>
+<form method="post" action="<?php echo PW_URL_BASE; ?>snoopfix.php">
+<input type="hidden" name="remArray[]" value="a">
 <?php
 foreach($snoop as $entry) {
 ?>
 <tr class="entry">
-<td align="left"><a href="<?php echo PW_URL_INDEX; ?>?id=<?php echo $entry['userName']; ?>" title="Finger <?php echo $entry['userName']; ?>"><?php echo $entry['userName']; ?></a></td>
+<td align="left"><input type="checkbox" name="remArray[]" value="<?php echo $entry['userName'] ?>">&nbsp;<a href="<?php echo PW_URL_INDEX; ?>?id=<?php echo $entry['userName']; ?>" title="Finger <?php echo $entry['userName']; ?>"><?php echo $entry['userName']; ?></a></td>
 <td align="center"><?php echo Planworld::getDisplayDate($entry['date']); ?></td>
 <td align="center"><?php echo Planworld::getDisplayDate($entry['lastUpdate']); ?></td>
 </tr>
@@ -40,6 +42,8 @@ foreach($snoop as $entry) {
 } // foreach($snoop as $entry)
 ?>
 </table>
+<input class="inputButton" type="submit" value="Fix Snoops and Delete Checked Snoops" />
+</form>
 </td>
 </tr>
 </table>

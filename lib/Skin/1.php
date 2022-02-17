@@ -55,8 +55,12 @@ class Skin {
         return 'archive.inc';
       case 'stuff':
         return 'stuff.inc';
-          case 'alumni':
+      case 'alumni':
         return 'alumni.inc';
+      case 'tutorial':
+        return 'tutorial.inc';
+      case 'look':
+        return 'look.inc';
       default:
         return 'home.inc';
       }
@@ -106,8 +110,14 @@ class Skin {
         return 'last';
       case 'new':
         return 'new';
+      case 'look':
+        return 'look';
+      case 'tutorial':
+        return 'how to use planworld';
       case 'alumni':
         return 'move to your alumni account';
+      case 'look':
+        return 'planwatch look';
       default:
         return 'home';
       }

@@ -131,10 +131,6 @@ class RemoteUser extends User {
 	$out .= "[Sorry, could not find \"{$this->username}\"]</tt>\n";
       } else if ($this->lastUpdate == 0) {
 	$out .= " (<a href=\"#\" onclick=\"return send('" . $this->username . "')&amp;\" title=\"send to " . $this->username . "\">send</a>)<br />\n";
-	$out .= "Last login: " . Planworld::getDisplayDate($this->lastLogin) . "<br />\n";
-	$out .= "Last update: Never<br />\n";
-	$out .= "Plan:<br />\n";
-	$out .= "[No Plan]</tt>\n";
       } else {
 	$out .= " (<a href=\"#\" onclick=\"return send('" . $this->username . "')&amp;\" title=\"send to " . $this->username . "\">send</a>)<br />\n";
 	$out .= "Last login: " . Planworld::getDisplayDate($this->lastLogin) . "<br />\n";

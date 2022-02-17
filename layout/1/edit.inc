@@ -15,7 +15,20 @@ if (isset($_GET['u']) && !empty($_GET['u']) && Planworld::isUser($_GET['u'])) {
   }
 }
 
-$plan_edit = $_user->getPlan($_user);
+if($_user->hasDraft()) {
+  $edit_url = PW_URL_INDEX . '?id=edit_plan';
+  $edit_url .= isset($_GET['u']) ? '&u=' . $_GET['u'] : '';
+  if(isset($_GET['ignore_draft'])) {
+    $plan_edit = $_user->getPlan($_user);
+    $edit_draft_url = $edit_url;
+  } else {
+    $plan_edit = $_user->getLatestDraft();
+    $edit_published_url = $edit_url . '&ignore_draft=true';
+  }
+} else {
+    $plan_edit = $_user->getPlan($_user);
+}
+
 if (empty($plan_edit)) {
   $type = 'text';
 } else if (preg_match('/^\<pre\>(.*)\<\/pre\>$/misD', $plan_edit, $matches)) {
@@ -31,6 +44,6 @@ if ($_user->getPreference('journal')) {
 
 $archive = $_user->getArchive();
 
-echo "<form action=\"parser.php\" method=\"post\">\n";
+echo '<form action="parser.php" id = "editForm" method="post">';
 require($_base . "layout/{$skin['id']}/edit.tpl");
 ?>

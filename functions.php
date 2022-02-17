@@ -13,14 +13,14 @@ require_once($_base . 'lib/Planworld.php');
  */
 
 //------------------------------------------------------------
-/** MOVED: Planworld::_connect() */
+/** MOVED: DBUtils::_connect() */
 function connectToDatabase() {
   //connect to and select database
   global $dbh;
 
   if (!$dbh) {
-	$dbh = mysql_pconnect(PW_DB_HOST, PW_DB_USER, PW_DB_PASS);
-	mysql_select_db(PW_DB_NAME, $dbh);
+  $dbh = mysql_pconnect(PW_DB_HOST, PW_DB_USER, PW_DB_PASS);
+  mysql_select_db(PW_DB_NAME, $dbh);
   }
 }
 //------------------------------------------------------------
@@ -112,33 +112,33 @@ function getLastUpdated ($uid, $host='', $force='N') {
     if (is_object($result)) {
       $val = $result->value();
       if (!$result->faultCode()) {
-	/* call was successful */
-	if ($val->kindOf() == 'struct' || $val->kindOf() == 'array') {
-	  /* decode the received array */
-	  $times = XML_RPC_decode($val);
+  /* call was successful */
+  if ($val->kindOf() == 'struct' || $val->kindOf() == 'array') {
+    /* decode the received array */
+    $times = XML_RPC_decode($val);
 
-	  /* freshen the cache */
-	  foreach ($times as $u=>$t) {
-	    mysql_query("UPDATE users SET lastUpdate='{$t}' WHERE username='{$u}@{$host}'", $dbh); 
-	  }
+    /* freshen the cache */
+    foreach ($times as $u=>$t) {
+      mysql_query("UPDATE users SET lastUpdate='{$t}' WHERE username='{$u}@{$host}'", $dbh); 
+    }
 
-	  return $times;
-	} else {
-	  /* received a single value */
+    return $times;
+  } else {
+    /* received a single value */
 
-	  /* freshen the cache */
-	  $SQL = "UPDATE users SET lastUpdate=" . $val->scalarval() . " WHERE username='{$uid}@{$host}'";
-	  mysql_query($SQL, $dbh);
+    /* freshen the cache */
+    $SQL = "UPDATE users SET lastUpdate=" . $val->scalarval() . " WHERE username='{$uid}@{$host}'";
+    mysql_query($SQL, $dbh);
 
-	  return $val->scalarval();
-	}
+    return $val->scalarval();
+  }
       } else {
-	/* call failed */
-	/* available debugging information: $result->faultCode(), $result->faultString() */
+  /* call failed */
+  /* available debugging information: $result->faultCode(), $result->faultString() */
 
-	//	print "Fault in getLastUpdate: ";
-	//	print "Code: " . $result->faultCode() . " Reason '" .$result->faultString()."'<br />";
-	return false;
+  //  print "Fault in getLastUpdate: ";
+  //  print "Code: " . $result->faultCode() . " Reason '" .$result->faultString()."'<br />";
+  return false;
       }
     }
   
@@ -236,33 +236,33 @@ function getLastLogin ($uid, $host='', $force='N') {
     if (is_object($result)) {
       $val = $result->value();
       if (!$result->faultCode()) {
-	/* call was successful */
-	if ($val->kindOf() == 'struct' || $val->kindOf() == 'array') {
-	  /* decode the received array */
-	  $times = XML_RPC_decode($val);
+  /* call was successful */
+  if ($val->kindOf() == 'struct' || $val->kindOf() == 'array') {
+    /* decode the received array */
+    $times = XML_RPC_decode($val);
 
-	  /* freshen the cache */
-	  foreach ($times as $u=>$t) {
-	    mysql_query("UPDATE users SET lastOn='{$t}' WHERE username='{$u}@{$host}'", $dbh);
-	  }
+    /* freshen the cache */
+    foreach ($times as $u=>$t) {
+      mysql_query("UPDATE users SET lastOn='{$t}' WHERE username='{$u}@{$host}'", $dbh);
+    }
 
-	  return $times;
-	} else {
-	  /* received a single value */
+    return $times;
+  } else {
+    /* received a single value */
 
-	  /* freshen the cache */
-	  $SQL = "UPDATE users SET lastOn=" . $val->scalarval() . " WHERE username='{$uid}@{$host}'";
-	  mysql_query($SQL, $dbh);
+    /* freshen the cache */
+    $SQL = "UPDATE users SET lastOn=" . $val->scalarval() . " WHERE username='{$uid}@{$host}'";
+    mysql_query($SQL, $dbh);
 
-	  return $val->scalarval();
-	}
+    return $val->scalarval();
+  }
       } else {
-	/* call failed */
-	/* available debugging information: $result->faultCode(), $result->faultString() */
+  /* call failed */
+  /* available debugging information: $result->faultCode(), $result->faultString() */
 
-	//	print "Fault in getLastLogin: ";
-	//	print "Code: " . $result->faultCode() . " Reason '" .$result->faultString()."'<br />";
-	return false;
+  //  print "Fault in getLastLogin: ";
+  //  print "Code: " . $result->faultCode() . " Reason '" .$result->faultString()."'<br />";
+  return false;
       }
     }
 
@@ -279,9 +279,9 @@ function addView ($uid) {
   global $dbh;
 
   if (is_string($uid)) {
-	$SQL = "UPDATE users SET totalViews=totalViews + 1 WHERE username='{$uid}'";
+  $SQL = "UPDATE users SET totalViews=totalViews + 1 WHERE username='{$uid}'";
   } else if (is_int($uid)) {
-	$SQL = "UPDATE users SET totalViews=totalViews + 1 WHERE id='{$uid}'";
+  $SQL = "UPDATE users SET totalViews=totalViews + 1 WHERE id='{$uid}'";
   }
   mysql_query($SQL, $dbh);
 }
@@ -293,9 +293,9 @@ function addUser ($username) {
   global $dbh;
 
   if (strstr($username, '@')) {
-	$remote = 'Y';
+  $remote = 'Y';
   } else {
-	$remote = 'N';
+  $remote = 'N';
   }
   $SQL = "INSERT INTO users (username, remote) VALUES ('{$username}', '{$remote}')";
   mysql_query($SQL, $dbh);
@@ -312,20 +312,20 @@ function getIdFromName ($userName, $host='') {
 
   // don't execute the query if it's not necessary
   if ($userName == $planworld_user)
-	return $planworld_id;
+  return $planworld_id;
   if ($userName == $planworld_target)
-	return $planworld_target_id;
+  return $planworld_target_id;
 
   if (empty($host)) {
     $SQL = "SELECT id FROM users WHERE username='{$userName}'";
     $result = mysql_query($SQL, $dbh);
     if ((mysql_num_rows($result) == 0) && strstr($userName, '@')) {
       mysql_free_result($result);
-	  return Planworld::addUser($userName);
+    return Planworld::addUser($userName);
     } else if ($row = mysql_fetch_row($result)) {
       $uid = (int) $row[0];
       mysql_free_result($result);
-	  return $uid;
+    return $uid;
     }
   } else if ($node = getNodeInfo($host)) {
     // XML-RPC
@@ -356,9 +356,9 @@ function getNameFromID($id) {
 
   // don't execute the query if it's not necessary
   if ($id == $planworld_id)
-	return $planworld_user;
+  return $planworld_user;
   if ($id == $planworld_target_id)
-	return $planworld_target;
+  return $planworld_target;
 
   $SQL = "SELECT username FROM users WHERE id='{$id}'";
   $result = mysql_query($SQL, $dbh);
@@ -396,10 +396,10 @@ function isRemoteUser ($uid) {
   $row = mysql_fetch_row($result);
   if ($row[0] == 'Y') {
     mysql_free_result($result);
-	return true;
+  return true;
   } else {
     mysql_free_result($result);
-	return false;
+  return false;
   }
 }
 //------------------------------------------------------------
@@ -410,15 +410,15 @@ function isUser ($uid) {
   global $dbh;
 
   if (is_string($uid)) {
-	$SQL = "SELECT id FROM users WHERE username='{$uid}'";
+  $SQL = "SELECT id FROM users WHERE username='{$uid}'";
   } else if (is_int($uid)) {
-	$SQL = "SELECT id FROM users WHERE id='{$uid}'";
+  $SQL = "SELECT id FROM users WHERE id='{$uid}'";
   }
   $result = mysql_query($SQL, $dbh);
   if (mysql_num_rows($result) > 0) {
-	return true;
+  return true;
   } else {
-	return false;
+  return false;
   }
 }
 //------------------------------------------------------------
@@ -447,13 +447,13 @@ function getPlanText ($uid, $ts=null) {
       if (!$r->faultCode() && $v->scalarval()) {
         return array($v->scalarval(), $host, 'planworld');
       } else if (!$r->faultCode()) {
-	return array('[No Plan]', $host, 'planworld');
+  return array('[No Plan]', $host, 'planworld');
       } else {
-	// Fault
-	// 100: No such user
-	return array(false, $host, $r->faultString());
-	//        print "Fault in getPlanText: ";
-	//        print "Code: " . $r->faultCode() . " Reason '" .$r->faultString()."'<BR>";
+  // Fault
+  // 100: No such user
+  return array(false, $host, $r->faultString());
+  //        print "Fault in getPlanText: ";
+  //        print "Code: " . $r->faultCode() . " Reason '" .$r->faultString()."'<BR>";
       }
     } else {
       return array(finger($host, $user), $host, 'finger');
@@ -475,18 +475,18 @@ function getPlanText ($uid, $ts=null) {
       // get it from the archive
       require_once('./lib/Archive.php');
       if (Archive::isPublic($uid, $ts) || $uid == $planworld_id) {
-	$plan = Archive::getEntry($uid, $ts);
-	if (Archive::isError($plan)) {
-	  /* TODO: not handled correctly by finger.inc Should display
+  $plan = Archive::getEntry($uid, $ts);
+  if (Archive::isError($plan)) {
+    /* TODO: not handled correctly by finger.inc Should display
           error messages in better form.  A correct solution probably
           involves changing the interface that plans are transferred
           in.  (probably a Plan class) */
-	  return array('[The entry you requested could not be found.]', null, null);
-	} else {
-	  return array($plan, null, null);
-	}
+    return array('[The entry you requested could not be found.]', null, null);
+  } else {
+    return array($plan, null, null);
+  }
       } else {
-	return array('[You are unable to view this archive entry.]');
+  return array('[You are unable to view this archive entry.]');
       }
     }
   }
@@ -499,7 +499,7 @@ function clearPlan ($uid) {
     global $dbh;
     
     if (is_string($uid)) {
-    	$uid = Planworld::nameToID($uid);
+      $uid = Planworld::nameToID($uid);
     }
 
     /* delete one's plan */
@@ -540,11 +540,11 @@ function addLinks ($plan, $host='') {
 
   // !user! (and !user:description!) notation (with logic for external plans)
   if (empty($host)) {
-	$plan = preg_replace('/!([a-z0-9\-\.]+):([^!]+)!/i', "<a href=\"" . PW_URL_INDEX . "?id=\\1\">\\2</a>", $plan);
-	$plan = preg_replace('/!([a-z0-9\-\.]+)!/i', "<a href=\"" . PW_URL_INDEX . "?id=\\1\">\\1</a>", $plan);
+  $plan = preg_replace('/!([a-z0-9\-\.]+):([^!]+)!/i', "<a href=\"" . PW_URL_INDEX . "?id=\\1\">\\2</a>", $plan);
+  $plan = preg_replace('/!([a-z0-9\-\.]+)!/i', "<a href=\"" . PW_URL_INDEX . "?id=\\1\">\\1</a>", $plan);
   } else {
-	$plan = preg_replace('/!([a-z0-9\-\.]+):([^!]+)!/i', "<a href=\"" . PW_URL_INDEX . "?id=\\1@{$host}\">\\2</a>", $plan);
-	$plan = preg_replace('/!([a-z0-9\-\.]+)!/i', "<a href=\"" . PW_URL_INDEX . "?id=\\1@{$host}\">\\1</a>", $plan);
+  $plan = preg_replace('/!([a-z0-9\-\.]+):([^!]+)!/i', "<a href=\"" . PW_URL_INDEX . "?id=\\1@{$host}\">\\2</a>", $plan);
+  $plan = preg_replace('/!([a-z0-9\-\.]+)!/i', "<a href=\"" . PW_URL_INDEX . "?id=\\1@{$host}\">\\1</a>", $plan);
   }
   $plan = preg_replace('/!([a-z0-9\-\.]+)@' . PW_NAME . ':([^!]+)!/i', "<a href=\"" . PW_URL_INDEX . "?id=\\1\">\\2</a>", $plan);
   $plan = preg_replace('/!(([a-z0-9\-\.]+)@' . PW_NAME . ')!/i', "<a href=\"" . PW_URL_INDEX . "?id=\\2\">\\1</a>", $plan);
@@ -590,14 +590,14 @@ function snoop ($userid, $text, $old_text='', $date='') {
           $c = new XML_RPC_Client($node['Path'], $node['Hostname'], $node['Port']);
           $c->setDebug(false);
           $r = $c->send(new XML_RPC_Message('snoop.addReference', array(new XML_RPC_Value($user, 'string'), new XML_RPC_Value($planworld_user . '@' . PW_NAME, 'string'))));
-	if (is_object($r)) {
+  if (is_object($r)) {
           $v = $r->value();
           if ($r->faultCode()) {
               // XXX more elegant error handling needed
               print "Fault in snoop: ";
               print "Code: " . $r->faultCode() . " Reason '" .$r->faultString()."'<BR>";
           }
-	}
+  }
       }
   }
   foreach ($users_to_del as $user) {
@@ -612,14 +612,14 @@ function snoop ($userid, $text, $old_text='', $date='') {
           $c = new XML_RPC_Client($node['Path'], $node['Hostname'], $node['Port']);
           $c->setDebug(false);
           $r = $c->send(new XML_RPC_Message('snoop.removeReference', array(new XML_RPC_Value($user, 'string'), new XML_RPC_Value($planworld_user . '@' . PW_NAME, 'string'))));
-	if (is_object($r)) {
+  if (is_object($r)) {
           $v = $r->value();
           if ($r->faultCode()) {
               // XXX more elegant error handling needed
               print "Fault in snoop: ";
               print "Code: " . $r->faultCode() . " Reason '" .$r->faultString()."'<BR>";
           }
-	}
+  }
       }
   }
 }
@@ -659,9 +659,9 @@ function getSnoopRefs ($uid, $order='d', $dir='d') {
   $return = array();
   while ($row = mysql_fetch_array($result, MYSQL_ASSOC)) {
     $return[] = array("userID" => $row['snoopedBy'],
-		      "userName" => $row['username'],
-		      "date" => $row['snoopDate'],
-		      "lastUpdate" => $row['lastUpdate']);
+          "userName" => $row['username'],
+          "date" => $row['snoopDate'],
+          "lastUpdate" => $row['lastUpdate']);
   }
   mysql_free_result($result);
   return $return;
@@ -704,7 +704,7 @@ function inPlanwatch ($owner, $user) {
     } else if (is_string($owner) && is_string($user)) {
         $SQL = "SELECT watchId FROM planwatch, users, users as u2 WHERE userId=users.id AND users.username='{$owner}' AND watchId=u2.id AND u2.username='{$user}'";
     } else {
-	return false;
+  return false;
     }
 
     $result = mysql_query($SQL, $dbh);
@@ -726,24 +726,24 @@ function initialize ($user, $section='') {
   global $dbh;
 
   // initiate database connection
-  connectToDatabase();
+  $dbh = DBUtils::_connect();
 
   // check to see if user record exists; create one if not
   if (!isUser($user)) {
-	$idNumber = Planworld::addUser($user);
+  $idNumber = Planworld::addUser($user);
   }
 
   $section = str_replace(' ', '', $section);
   
   if (strtolower($section) == 'random') {
-	$planworld_target_id = getRandomUser();
-	$section = Planworld::idToName($planworld_target_id);
+  $planworld_target_id = getRandomUser();
+  $section = Planworld::idToName($planworld_target_id);
   } else {
-	$planworld_target_id = Planworld::nameToID($section);
+  $planworld_target_id = Planworld::nameToID($section);
   }
   
   if (!isset($idNumber)) {
-	$idNumber = Planworld::nameToID($user);
+  $idNumber = Planworld::nameToID($user);
   }
 
   // online users code
@@ -752,8 +752,8 @@ function initialize ($user, $section='') {
   $SQL = "UPDATE Online SET LastAccess=UNIX_TIMESTAMP(NOW()), What='{$section}' WHERE UserID='{$idNumber}'";
   mysql_query($SQL, $dbh);
   if (mysql_affected_rows($dbh) < 1) {
-	$SQL = "INSERT INTO Online (UserID, Login, LastAccess, What) VALUES ('{$idNumber}', UNIX_TIMESTAMP(NOW()), UNIX_TIMESTAMP(NOW()), '{$section}')";
-	mysql_query($SQL, $dbh);
+  $SQL = "INSERT INTO Online (UserID, Login, LastAccess, What) VALUES ('{$idNumber}', UNIX_TIMESTAMP(NOW()), UNIX_TIMESTAMP(NOW()), '{$section}')";
+  mysql_query($SQL, $dbh);
   }
 
   clearOnlineUsers();
@@ -807,16 +807,16 @@ function getWatchNumber($userId) {
 function getAllUsers ($type='') {
   global $dbh;
   if ($type == 'plans') {
-	$SQL = "SELECT username FROM users, plan WHERE users.id=plan.userId ORDER BY username";
+  $SQL = "SELECT username FROM users, plan WHERE users.id=plan.userId ORDER BY username";
   } else if ($type == 'login') {
-	$SQL = "SELECT username FROM users WHERE lastOn!=0 ORDER BY username";
+  $SQL = "SELECT username FROM users WHERE lastOn!=0 ORDER BY username";
   } else {
-	$SQL = "SELECT username FROM users ORDER BY username";
+  $SQL = "SELECT username FROM users ORDER BY username";
   }
   $result = mysql_query($SQL, $dbh);
   $count = mysql_num_rows($result);
   while ($row = mysql_fetch_row($result)) {
-	$return[] = $row[0];
+  $return[] = $row[0];
   }
   mysql_free_result($result);
   return array($return, $count);
@@ -865,15 +865,15 @@ function removeFromPW ($wid, $uid, $redirect = true) {
   global $dbh;
 
   if (is_string($wid)) {
-  	$wid = Planworld::nameToID($wid);
+    $wid = Planworld::nameToID($wid);
   }
   
   $SQL = "DELETE FROM planwatch WHERE userId='{$uid}' AND watchId='{$wid}'";
   mysql_query($SQL, $dbh);
 
   if ($redirect) {
-	header("Location: " . PW_URL_INDEX . "?id=edit_pw\n");
-	exit();
+  header("Location: " . PW_URL_INDEX . "?id=edit_pw\n");
+  exit();
   }
 }
 //-------------------------------------------------------------
@@ -888,16 +888,16 @@ function getCookie ($id='') {
 
   $SQL = "SELECT quote, author, submittedBy FROM cookies";
   if (empty($id)) {  // select random cookie
-	$SQL .= " ORDER BY RAND() LIMIT 1";
+  $SQL .= " ORDER BY RAND() LIMIT 1";
   } else {
-	$SQL .= " WHERE cookieId='{$id}' LIMIT 1";
+  $SQL .= " WHERE cookieId='{$id}' LIMIT 1";
   }
   $result = mysql_query($SQL, $dbh);
   $row = mysql_fetch_array($result, MYSQL_ASSOC);
 
   $return = array('quote'  => $row['quote'],
-				  'author' => $row['author'],
-				  'credit' => $row['submittedBy']);
+          'author' => $row['author'],
+          'credit' => $row['submittedBy']);
   mysql_free_result($result);
   return $return;
 }
@@ -916,7 +916,7 @@ function getNews ($begin='', $end='') {
   $return = array();
   while ($row = mysql_fetch_array($result, MYSQL_ASSOC)) {
     $return[] = array('date' => $row['date'],
-		      'news' => $row['news']);
+          'news' => $row['news']);
   }
   mysql_free_result($result);
   return $return;
@@ -929,56 +929,59 @@ function getNews ($begin='', $end='') {
 function getTitleString ($section) {
   switch (strtolower($section)) {
   case 'about':
-	$title = 'About';
+  $title = 'About';
     break;
   case 'prefs':
-	$title = 'Edit Your Preferences';
+  $title = 'Edit Your Preferences';
     break;
   case 'stats':
-	$title = 'Statistics';
+  $title = 'Statistics';
     break;
   case 'news':
-	$title = 'Home';
+  $title = 'Home';
     break;
   case 'snitch':
-	$title = 'Snitch';
+  $title = 'Snitch';
     break;
   case 'snoop':
-	$title = 'Snoop';
-	break;
+  $title = 'Snoop';
+  break;
   case 'edit_pw':
-	$title = 'Edit Your planWatch';
+  $title = 'Edit Your planWatch';
     break;
   case 'log_out':
-	$title = 'Log Out';
+  $title = 'Log Out';
     break;
   case 'edit_plan':
-	$title = 'Edit Your Plan';
+  $title = 'Edit Your Plan';
     break;
   case 'help':
-	$title = 'Help';
+  $title = 'Help';
     break;
   case 'del_plan':
-	$title = 'Edit Your Plan';
+  $title = 'Edit Your Plan';
     break;
   case 'whois':
-	$title = 'Whois';
+  $title = 'Whois';
     break;
   case 'preview':
-	$title = 'Preview Your Plan';
+  $title = 'Preview Your Plan';
     break;
   case 'archiving':
-	$title = 'View the Archives';
-	break;
+  $title = 'View the Archives';
+    break;
+  case 'look':
+  $title = 'Look';
+    break;
   case 'who':
-	$title = 'Online Users';
-	break;
+  $title = 'Online Users';
+    break;
   default:
-	if ($section)
-	  $title = "Finger {$section}";
-	else
-	  $title = "Home";
-	break;
+  if ($section)
+    $title = "Finger {$section}";
+  else
+    $title = "Home";
+  break;
   } // switch
 
   return $title;
@@ -992,57 +995,59 @@ function getIncludeFile ($section) {
 
   switch (strtolower($section)) {
   case 'about':
-	$file = 'about.inc';
+  $file = 'about.inc';
     break;
   case 'prefs':
-	$file = 'prefs.inc';
+  $file = 'prefs.inc';
     break;
   case 'stats':
-	$file = 'stats.inc';
-	break;
+  $file = 'stats.inc';
+  break;
   case 'news':
-	$file = 'home.inc';
-	break;
+  $file = 'home.inc';
+  break;
   case 'snitch':
-	$file = 'snitch.inc';
-	break;
+  $file = 'snitch.inc';
+  break;
   case 'snoop':
-	$file = 'snoop.inc';
-	break;
+  $file = 'snoop.inc';
+  break;
   case 'edit_pw':
-	$file = 'planwatchedit.inc';
-	break;
+  $file = 'planwatchedit.inc';
+  break;
   case 'log_out':
-	$file = 'home.inc';
-	break;
+  $file = 'home.inc';
+  break;
   case 'edit_plan':
-	$file = 'edit.inc';
-	break;
+  $file = 'edit.inc';
+  break;
   case 'help':
-	$file = 'faq.inc';
-	break;
+  $file = 'faq.inc';
+  break;
   case 'del_plan':
-	$file = 'delete.inc';
-	break;
+  $file = 'delete.inc';
+  break;
   case 'whois':
-	$file = 'whois.inc';
+  $file = 'whois.inc';
         break;
   case 'who':
-	$file = 'who.inc';
+  $file = 'who.inc';
         break;
   case 'preview':
-	$file = 'preview.inc';
-	break;
+  $file = 'preview.inc';
+  break;
   case 'archiving':
-  echo "hhhhhhi";
-	$file = 'archive.inc';
+  $file = 'archive.inc';
+    break;
+  case 'look':
+  $file = 'look.inc';
     break;
   default:
-	if ($section)
-	  $file = "finger.inc";
-	else
-	  $file = 'home.inc';
-	break;
+  if ($section)
+    $file = "finger.inc";
+  else
+    $file = 'home.inc';
+  break;
   } // switch
 
   return $file;
@@ -1103,13 +1108,13 @@ function getSnitch ($user) {
 function isSnitchRegistered ($uid) {
     // XXX accept strings and ints
   if (is_string($uid)) {
-	$uid = Planworld::nameToID($uid);
+  $uid = Planworld::nameToID($uid);
   }
 
   if (getSnitch($uid) == 'Y') {
-	return true;
+  return true;
   } else {
-	return false;
+  return false;
   }
 }
 //-------------------------------------------------------------
@@ -1291,8 +1296,8 @@ function getThemeList ($sid) {
   $SQL = "SELECT * FROM Themes WHERE SkinID='{$sid}' ORDER BY Name";
   $result = mysql_query($SQL, $dbh);
   while ($row = mysql_fetch_array($result, MYSQL_ASSOC)) {
-	$return[] = array('ID' => $row['ID'],
-			  'Name' => $row['Name']);
+  $return[] = array('ID' => $row['ID'],
+        'Name' => $row['Name']);
   }
   mysql_free_result($result);
   return $return;
@@ -1306,18 +1311,18 @@ function getUserInfo ($username) {
   // XXX should the ldap connection be shared?
 
   if (!defined('PW_LDAP_ENABLE'))
-	return false;
+  return false;
 
   $username = addslashes($username);
   $ds = ldap_connect(PW_LDAP_HOST);
 
   if (!$ds)
-	return false;
+  return false;
 
   $r = ldap_bind($ds);  // bind anonymously
   $sr = ldap_search($ds, PW_LDAP_BASE, "uid={$username}");
   if (ldap_count_entries($ds, $sr) == 0)
-	return false;
+  return false;
   
   $info = ldap_get_entries($ds, $sr);
   $return['Name']= $info[0]["cn"][0];
@@ -1360,9 +1365,9 @@ function getNodeInfo ($node) {
   $result = mysql_query($SQL, $dbh);
   if ($row = mysql_fetch_array($result)) {
     $return = array('Name' => $row['Name'],
-		    'Hostname' => $row['Hostname'],
-		    'Path' => $row['Path'],
-		    'Port' => (int) $row['Port']);
+        'Hostname' => $row['Hostname'],
+        'Path' => $row['Path'],
+        'Port' => (int) $row['Port']);
     mysql_free_result($result);
     return $return;
   } else {
@@ -1408,14 +1413,14 @@ function getPreference ($uid, $name) {
 function finger ($host, $user='', $port=79) {
   $rc = fsockopen($host, $port, $errno, $errstr, 2);
   if (!$rc)
-	return false;
+  return false;
   fputs($rc, "$user\n");
   socket_set_timeout($rc, 4);
   $str = fread($rc, 1000000);
   fclose($rc);
   if ($str)
-	return $str;
+  return $str;
   else
-	return false;
+  return false;
 }
 ?>

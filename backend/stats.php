@@ -9,7 +9,6 @@
 require_once(dirname(__FILE__) . '/epi-utils.php');
 require_once('../config.php');
 require_once('../functions.php');
-connectToDatabase();
 
 if (empty($_GET)) {
   echo "please specify a node on the querystring<br />\n";

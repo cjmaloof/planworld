@@ -9,7 +9,7 @@ Skin <?php echo $skin['id']; ?> (<?php echo $skin['name']; ?>) by <?php echo $sk
 
 -->
 <title><?php echo $pagetitle; ?></title>
-<?php // require($_base . "layout/{$skin['id']}/themes/{$theme}/styles.css"); ?>
+<link rel="icon" type="image/vnd.microsoft.icon" href="http://neon.note.amherst.edu/planworld/favicon.ico">
 <link rel="stylesheet" type="text/css" media="all" title="<?php echo $theme; ?>" href="layout/<?php echo $skin['id']; ?>/themes/<?php echo $theme; ?>/styles.css" />
 <?php
 foreach (Skin::getThemeList() as $theme) {
@@ -31,12 +31,6 @@ function send (u) {
   return false;
 }
 //-->
-</script>
-<script src="http://www.google-analytics.com/urchin.js" type="text/javascript">
-</script>
-<script type="text/javascript">
-_uacct = "UA-66841-3";
-urchinTracker();
 </script>
 </head>
 

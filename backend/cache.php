@@ -22,7 +22,7 @@ $hosts = array();
 while ($row = $result->fetch(DB_FETCHMODE_ASSOC)) {
   list($user, $host) = split('@', $row['username']);
   if (!in_array($host, $hosts)) $hosts[] = $host;
-  if (!is_array($$host)) $$host = array();
+  if (!isset($$host)) $$host = array();
   array_push($$host, $user);
 }
 

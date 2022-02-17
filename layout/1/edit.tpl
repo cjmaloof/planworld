@@ -1,3 +1,5 @@
+<table width="650" cellpadding="0" cellspacing="0"><tr>
+<td>
 <span class="subtitle">Edit <?php if ($_user->isShared()) echo $_user->getUsername() . "'s"; else echo 'Your'; ?> Plan</span>
 <?php
 if (isset($_user->editor)) {
@@ -15,14 +17,28 @@ if ($shared) {
   echo ")";
 }
 ?>
-<br /><br />
+</td>
+<td width = "180" class = "editorLinks">
+<a id = "toggleEditor" onclick = "return toggleEditor();">WYSIWYG Editor</a>
+</td>
+</tr></table>
+
 <?php if (isset($error)) echo $error; ?>
 <?php if ($_user->isShared()) { ?>
 <input type="hidden" name="shared" value="<?php echo $_user->getUsername(); ?>" />
 <?php } ?>
-<textarea class="inputTextArea" cols="76" rows="20" name="ptext" wrap="virtual"><?php echo htmlspecialchars($plan_edit); ?></textarea><br />
+
+<?php if (isset($edit_published_url)) { ?>
+<p class = "draftMessage">You have a saved draft, which is displayed here.  If you want to edit your latest published plan, go <a href = "<?php echo $edit_published_url ?>">here</a>.</p>
+<?php } else if(isset($edit_draft_url)) { ?>
+<p class = "draftMessage">You have a saved draft, but are editing the public version.  Go <a href = "<?php echo $edit_draft_url ?>">here</a> to edit the draft.</p>
+<?php } ?>
+
+<textarea id = "inputTextArea" class="inputTextArea" cols="80" rows="30" name="ptext" wrap="virtual">
+<?php echo htmlspecialchars($plan_edit); ?></textarea><br />
+<!-- This is the newer version of the file, but I kept Gerety instead of Marx, JLO2 -->
 <p><strong>NOTE:</strong> To automatically link to a user's plan, put their name in exclamation points.
-For example, <i>!marx!</i> will appear as <a href="<?php echo PW_URL_INDEX; ?>?id=marx" title="Finger marx">marx</a>.
+For example, <i>!bmartin!</i> will appear as <a href="<?php echo PW_URL_INDEX; ?>?id=bmartin" title="Finger bmartin">bmartin</a>.
 You can also use !username:description! as shorthand for linking to others by nickname.</p>
 
 <!-- archive settings -->
@@ -36,7 +52,7 @@ You can also use !username:description! as shorthand for linking to others by ni
 <table border="0" width="100%" cellpadding="3" cellspacing="1">
 <tr>
 <td align="right" class="description">Content type:</td>
-<td class="entry"><select name="type">
+<td class="entry"><select name="type" id="formatType">
 <option value="text"<?php if (isset($type) && $type == 'text') echo ' selected="selected"'; ?>>text</option>
 <option value="html"<?php if (isset($type) && $type == 'html') echo ' selected="selected"'; ?>>html</option>
 </select></td>
@@ -55,7 +71,10 @@ You can also use !username:description! as shorthand for linking to others by ni
 </tr>
 <tr>
 <td align="right" colspan="2" class="entry">
-<input class="inputButton" type="submit" name="preview" value="preview" />&nbsp;<input class="inputButton" type=submit name="post" value="fixplan" />&nbsp;<input class="inputButton" type="reset" value="undo" />
+<input class="inputButton" type="submit" name="preview" value="preview" />&nbsp;
+<input class="inputButton" type="submit" name="draft" value="save draft" onclick = "ajaxSave(); return false;"/>&nbsp;
+<input class="inputButton" type=submit name="post" value="fixplan" />&nbsp;
+<input class="inputButton" type="reset" value="undo" />
 </td>
 </tr>
 </table>
@@ -63,4 +82,11 @@ You can also use !username:description! as shorthand for linking to others by ni
 </tr>
 </table>
 <!-- end archive settings -->
+<script type="text/javascript" src="js/tiny_mce.js"></script>
+<script type="text/javascript" src="js/jquery-1.2.6.min.js"></script>
+<script type="text/javascript" src="js/jquery.form.js"></script>
+<script type="text/javascript" src="js/edit.js"></script>
+<script type="text/javascript">
+startAutosaveTimer();
+</script>
 </form>

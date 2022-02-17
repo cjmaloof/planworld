@@ -7,8 +7,6 @@
 /* includes */
 require_once($_base . 'config.php');
 require_once($_base . 'lib/Planworld.php');
-/** TEMPORARY */
-require_once($_base . 'backend/epi-utils.php');
 
 // Return codes
 /** @constant ARCHIVE_OK Operation succeeded. */

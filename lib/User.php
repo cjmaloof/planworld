@@ -483,6 +483,7 @@ class User {
         function hasOldUsername()
         {
                 $oldUsernamesArray = array('NewUsername' => 'OldUsername',
+                'kapappageorge04' => 'kapappageorg',
                 'hmplum04' => 'hmplum03',
                 'arc' => 'npdoty',
                 'jsschmiedeskamp55' => 'JSSCHMIEDESKAMP5',
@@ -752,6 +753,7 @@ class User {
         function oldUsername()
         {
                 $oldUsernamesArray = array('NewUsername' => 'OldUsername',
+                'kapappageorge04' => 'kapappageorg',
                 'hmplum04' => 'hmplum03',
                 'arc' => 'npdoty',
                 'jsschmiedeskamp55' => 'JSSCHMIEDESKAMP5',
@@ -1288,13 +1290,17 @@ class User {
 
       /* save it in the archives */
       if ($archive == 'P' || $archive == 'Y') {
-        Archive::saveEntry($this->userID, $timestamp, addslashes($plan), addslashes(htmlspecialchars($name)), ($archive == 'Y') ? true : false);
+        $success = ARCHIVE_OK == Archive::saveEntry($this->userID, $timestamp, 
+                addslashes($plan), addslashes(htmlspecialchars($name)), 
+                ($archive == 'Y') ? true : false);
+      } else {
+        $success = true;
       }
 
       $oldplan = $this->getPlan($this);
 
       $query = "DELETE FROM plans WHERE uid=" . $this->userID;
-      $this->dbh->query($query);
+      $success = $success && ($this->dbh->query($query) != false);
 
       /* format the journalled plan */
       if ($this->getPreference('journal')) {
@@ -1322,17 +1328,15 @@ class User {
           }
           $plan = $tmp;
         }
-
       }
 
       /* process snoop references */
-      Snoop::process($this, $plan, $oldplan);
-
+      $success = $success && Snoop::process($this, $plan, $oldplan);
+      $success = $success && $this->deleteDrafts();
 
       /* save the plan */
       $query = "INSERT INTO plans (uid, content) VALUES (" . $this->userID . ", '" . addslashes($plan) . "')";
-      $this->dbh->query($query);
-
+      return $success && ($this->dbh->query($query) != false);
     }
 
     function repostPlan () {
@@ -1419,6 +1423,38 @@ class User {
       }
 
       return $this->displayPlan($user, $plan);
+    }
+    
+    /**
+     * Returns true if this user has any saved drafts.
+     */
+    function hasDraft() {
+      $result = $this->dbh->query("SELECT COUNT(*) AS count FROM drafts WHERE uid = {$this->userID}");
+      return $result->fetch()['count'] > 0;
+    }
+
+    /**
+     * Returns the text of the latest draft for this user.
+     */
+    function getLatestDraft() {
+      $result = $this->dbh->query("SELECT content FROM drafts WHERE uid = {$this->userID} ORDER BY date_saved DESC LIMIT 1");
+      return $result->fetch()['content'];
+    }
+
+    /**
+     * Saves draft content for this user.
+     */
+    function saveDraft($text) {
+      $query = $this->dbh->prepare("INSERT INTO drafts (uid, content) VALUES (?, ?)");
+      return $query->execute(array($this->userID, $text));
+    }
+
+    /**
+     * Deletes all saved drafts.
+     */
+    function deleteDrafts() {
+      $query = $this->dbh->prepare("DELETE FROM drafts WHERE uid = ?");
+      return $query->execute(array($this->userID));
     }
 
     /**

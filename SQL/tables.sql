@@ -162,3 +162,10 @@ CREATE TABLE send (
   message text,
   PRIMARY KEY  (uid,to_uid,sent)
 );
+
+CREATE TABLE drafts (
+    uid BIGINT NOT NULL DEFAULT 0,
+    date_saved TIMESTAMP NOT NULL,
+    content MEDIUMTEXT NOT NULL,
+    PRIMARY KEY (uid, date_saved)
+) ENGINE=InnoDB;

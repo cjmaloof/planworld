@@ -7,6 +7,7 @@
 
 /* includes */
 $_base = dirname(__FILE__) . '/';
+require_once($_base . 'lib/DBUtils.php');
 require_once($_base . 'lib/Archive.php');
 
 if (!isset($_POST) || empty($_POST)) {
@@ -55,6 +56,13 @@ if (isset($_POST['preview'])) {
   /* preview said plan */
   $_target = 'preview';
   include('./layout/' . PW_LAYOUT . '/skin.php');
+} else if (isset($_POST['draft'])) {
+  $to_edit->saveDraft($plan_display);
+  // Autosaves via AJAX, but manual save should redirect back to same page
+  $url = PW_URL_INDEX . '?id=edit_plan';
+  if(isset($_POST['shared'])) $url .= '&u=' . $_POST['shared'];
+  header('Location: ' . $url . "\n");
+  exit();
 } else if (isset($_POST['cancel'])) {
   /* return to this user's plan */
   header("Location: " . PW_URL_INDEX . "?id=" . $to_edit->getUsername() . "\n");
@@ -62,10 +70,21 @@ if (isset($_POST['preview'])) {
 } else {
   /* start saving */
   $now = time();
-  $to_edit->setPlan($plan_display, $_POST['archive'], (isset($_POST['name']) ? $_POST['name'] : ''), $now);
+  $dbh = DBUtils::_connect();
+  $success = ($dbh->query('BEGIN') != false);
+  $success = $success && $to_edit->setPlan($plan_display, $_POST['archive'], 
+                                           (isset($_POST['name']) ? $_POST['name'] : ''), $now);
   $to_edit->setLastUpdate($now);
-  $to_edit->save();
+  $success = $success && $to_edit->save();
   /* display the saving.. status message */
-  include ('./layout/' . PW_LAYOUT . '/saving.inc');
+  if($success) {
+    $dbh->query('COMMIT');
+    include ('./layout/' . PW_LAYOUT . '/saving.inc');
+  } else {
+    $dbh->query('ROLLBACK');
+    $_target = 'preview';
+    $_preview_from_db_error = true;
+    include('./layout/' . PW_LAYOUT . '/skin.php');
+  }
 }
 ?>

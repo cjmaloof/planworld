@@ -4,5 +4,5 @@
  * Version number
  */
 
-define('PW_VERSION', '2.1.5');
+define('PW_VERSION', '3.0.1');
 ?>

@@ -53,7 +53,7 @@ if (file_exists($_base . "layout/{$skin['id']}/themes/{$theme}/extras.inc")) {
 </tr>
 <tr>
 <td align="left" valign="bottom">
-<span class="welcome">Welcome, <?php echo $_user->getUsername(); ?> | <a href="/login/logout.php" class="welcome" title="Log out of planworld" onclick="return confirmLogout();">Logout</a></span>
+<span class="welcome">Welcome, <?php echo $_user->getUsername(); ?> | <a href="/logout.php" class="welcome" title="Log out of planworld" onclick="return confirmLogout();">Logout</a></span>
 </td>
 <td valign="bottom" align="right">
 <input class="inputTextBox" type="text" size="12" name="id" />&nbsp;<input class="inputButton" type="submit" value="Finger" />

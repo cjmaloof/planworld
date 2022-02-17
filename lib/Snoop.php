@@ -53,7 +53,7 @@ class Snoop {
 
     $query = "INSERT INTO snoop (uid, s_uid, referenced) VALUES ({$to}, {$from}, {$date})";
 
-    $dbh->query($query);
+    return $dbh->query($query) != false;
   }
 
   /**
@@ -64,8 +64,7 @@ class Snoop {
     $dbh = DBUtils::_connect();
 
     $query = "DELETE FROM snoop WHERE uid={$to} AND s_uid={$from}";
-
-    $dbh->query($query);
+    return $dbh->query($query) != false;
   }
 
   /**
@@ -76,8 +75,7 @@ class Snoop {
     $dbh = DBUtils::_connect();
 
     $query = "DELETE FROM snoop WHERE s_uid={$uid}";
-
-    $dbh->query($query);
+    return $dbh->query($query) != false;
   }
 
   /**
@@ -89,21 +87,34 @@ class Snoop {
   }
 
   /**
+   * Case-insensitive array diff that prunes duplicates
+   */
+  static function snoop_diff($old, $new) {
+    $old = array_map('strtolower', $old);
+    $new = array_map('strtolower', $new);
+    return array_unique(array_diff($old, $new));
+  }
+
+  /**
    * void Snoop::process ($user, $new, $old)
    * Find new / removed snoop references in $user's plan.
    */
   static function process (&$user, $new, $old) {
 
     /* find references in old plan */
-    $old_matches = Snoop::_getReferences($old);
+    // $old_matches = Snoop::_getReferences($old);
+    $dbh = DBUtils::_connect();
+    $query = $dbh->query("SELECT username FROM snoop, users WHERE snoop.uid = users.id AND s_uid = {$user->getUserID()}");
+    $old_matches = $query->fetchAll(PDO::FETCH_COLUMN);
 
     /* find references in new plan */
     $new_matches = Snoop::_getReferences($new);
 
     /* find differences */
-    $users_to_add = array_values(array_diff($new_matches[1], $old_matches[1]));
-    $users_to_del = array_values(array_diff($old_matches[1], $new_matches[1]));
+    $users_to_add = Snoop::snoop_diff($new_matches[1], $old_matches);
+    $users_to_del = Snoop::snoop_diff($old_matches, $new_matches[1]);
 
+    $success = true;
     foreach ($users_to_add as $u) {
       if (strstr($u, '@')) {
         list($username, $host) = explode('@', $u);
@@ -113,10 +124,10 @@ class Snoop {
       if (!isset($host) && $sid > 0) {
         /* valid local user */
 
-        Snoop::addReference($user->getUserID(), $sid);
+        $success = $success && Snoop::addReference($user->getUserID(), $sid);
       } else if (isset($host) && $node = Planworld::getNodeInfo($host)) {
         /* remote planworld user */
-
+        unset($host); /* JLO2 4/12/10 Required to stop permasnoops after calling remote users. */
         if ($node['Version'] < 2) {
           Snoop::_call($node, 'snoop.addReference', array($username, $user->getUsername() . '@' . PW_NAME));
         } else {
@@ -133,11 +144,10 @@ class Snoop {
       $sid = Planworld::nameToID($u);
       if (!isset($host) && $sid > 0) {
         /* valid local user */
-
-        Snoop::removeReference($user->getUserID(), $sid);
+        $success = $success && Snoop::removeReference($user->getUserID(), $sid);
       } else if (isset($host) && $node = Planworld::getNodeInfo($host)) {
         /* remote planworld user */
-
+        unset($host); /* JLO2 4/12/10 Required to stop permasnoops after calling remote users. */
         if ($node['Version'] < 2) {
           Snoop::_call($node, 'snoop.removeReference', array($username, $user->getUsername() . '@' . PW_NAME));
         } else {
@@ -145,6 +155,7 @@ class Snoop {
         }
       }
     }
+    return $success;
   }
 
   static function getReferences (&$user, $order='d', $dir='d') {

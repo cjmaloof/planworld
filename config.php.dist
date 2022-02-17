@@ -42,4 +42,7 @@ define('PW_ALLOWED_TAGS', '<tt>,<font>,<b>,<strong>,<u>,<i>,<em>,<a>,<img>,<pre>
 // reserved usernames
 define('PW_RESERVED', '|about|,|archiving|,|del_plan|,|edit_plan|,|edit_pw|,|prefs|,|random|,|stats|,|help|,|snitch|,|snoop|,|who|,|whois|,|stuff|,|widgets|last|new|');
 
+// token constants
+define("TOKEN_LIFE",	21600); /* Default is six hours - 6 hours * 60 minutes * 60 seconds = 21600 seconds. */
+define("NODE_TOKEN_PREFIX",	311000000);
 ?>

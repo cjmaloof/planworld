@@ -12,12 +12,14 @@ require_once($_base . 'lib/Planworld.php');
 <tr>
 <td align="left" class="navbar">
 &nbsp;<a href="<?php echo PW_URL_INDEX; ?>" class="navbar" title="Home">Home</a> |
+<a href="<?php echo PW_URL_INDEX; ?>look.php" class="navbar" title="Look">Look</a> |
 <a href="<?php echo PW_URL_INDEX; ?>?id=stats" class="navbar" title="Statistics">Stats</a> |
 <a href="<?php echo PW_URL_INDEX; ?>?id=snitch" class="navbar" title="Snitch">Snitch</a> |
 <a href="<?php echo PW_URL_INDEX; ?>?id=snoop" class="navbar" title="Snoop">Snoop</a> |
 <a href="<?php echo PW_URL_INDEX; ?>?id=prefs" class="navbar" title="Preferences">Preferences</a> |
 <a href="<?php echo PW_URL_INDEX; ?>?id=help" class="navbar" title="Frequently Asked Questions">FAQ</a> |
 <a href="<?php echo PW_URL_INDEX; ?>?id=about" class="navbar" title="About Planworld">About</a>
+<a href="<?php echo PW_URL_INDEX; ?>?id=tutorial" class="navbar" title="How to Use Planworld">Tutorial</a>
 <?php if ($_user->isAdmin()) { ?>
 | <a href="<?php echo PW_URL_INDEX; ?>?id=stuff&amp;s=admin" class="navbar" title="Planworld Administrator Functions">Admin</a>
 <?php } // if ($_user->isAdmin()) ?>
