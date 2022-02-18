@@ -261,10 +261,16 @@ class Planwatch {
    * Create a group named $name
    */
   function addGroup ($name) {
-    $id = (int) $this->dbh->nextId('groupid');
+    $id = $this->getNextGroupId();
     $query = "INSERT INTO pw_groups (gid, uid, name) VALUES ({$id}, " . $this->user->getUserID() . ", '{$name}')";
 
     $this->dbh->query($query);
+  }
+  
+  function getNextGroupId() {
+    $query = "SELECT 1 + ifnull(max(gid), 0) AS id from pw_groups";
+    $result = $this->dbh->query($query);
+    return (int) $result->fetch()['id'];
   }
 
   /**
