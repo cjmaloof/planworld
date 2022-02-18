@@ -18,7 +18,7 @@ require_once($_base . 'lib/Planworld.php');
 <a href="<?php echo PW_URL_INDEX; ?>?id=snoop" class="navbar" title="Snoop">Snoop</a> |
 <a href="<?php echo PW_URL_INDEX; ?>?id=prefs" class="navbar" title="Preferences">Preferences</a> |
 <a href="<?php echo PW_URL_INDEX; ?>?id=help" class="navbar" title="Frequently Asked Questions">FAQ</a> |
-<a href="<?php echo PW_URL_INDEX; ?>?id=about" class="navbar" title="About Planworld">About</a>
+<a href="<?php echo PW_URL_INDEX; ?>?id=about" class="navbar" title="About Planworld">About</a> |
 <a href="<?php echo PW_URL_INDEX; ?>?id=tutorial" class="navbar" title="How to Use Planworld">Tutorial</a>
 <?php if ($_user->isAdmin()) { ?>
 | <a href="<?php echo PW_URL_INDEX; ?>?id=stuff&amp;s=admin" class="navbar" title="Planworld Administrator Functions">Admin</a>
