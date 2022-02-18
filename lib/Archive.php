@@ -148,7 +148,7 @@ class Archive {
    */
   static function getEntry ($uid, $ts) {
     if (Planworld::isRemoteUser($uid)) {
-      list($username, $host) = split('@', Planworld::idToName($uid));
+      list($username, $host) = explode('@', Planworld::idToName($uid));
       $nodeinfo = Planworld::getNodeInfo($host);
       if ($nodeinfo['Version'] >= 2) {
         return Archive::_call($nodeinfo, 'planworld.archive.get', array($username, $ts));

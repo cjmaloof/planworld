@@ -40,7 +40,7 @@ class Send {
    */
   static function sendMessage ($uid, $to_uid, $message) {
     if (Planworld::isRemoteUser($to_uid)) {
-      list($to_user, $host) = split("@", Planworld::idToName($to_uid));
+      list($to_user, $host) = explode("@", Planworld::idToName($to_uid));
       $from_user = Planworld::idToName($uid) . "@" . PW_NAME;
       $nodeinfo = Planworld::getNodeInfo($host);
       // make xml-rpc call
@@ -59,12 +59,12 @@ class Send {
 	error_log("forwarding to ${fwd_uid} ({$fwd})");
         if (Planworld::isRemoteUser($fwd_uid)) {
           $fwd_message = "[fwd:" . Planworld::idToName($to_uid) . "@" . PW_NAME . "] " . $message;
-          list($to_user, $host) = split("@", $fwd);
+          list($to_user, $host) = explode("@", $fwd);
 	  if (!Planworld::isRemoteUser($uid)) {
             $from_user = Planworld::idToName($uid) . "@" . PW_NAME;
 	  } else {
             $from_user = Planworld::idToName($uid);
-	    list($f_user, $f_host) = split('@', $from_user);
+	    list($f_user, $f_host) = explode('@', $from_user);
 	    if ($f_host == $host) {
               $from_user = $f_user;
 	    }

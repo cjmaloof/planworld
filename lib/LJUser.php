@@ -31,7 +31,7 @@ class LJUser extends User {
 
     $this->lastUpdate = 0;
 
-    list($this->localname) = split('@', $this->username);
+    list($this->localname) = explode('@', $this->username);
 
     $this->load();
   }

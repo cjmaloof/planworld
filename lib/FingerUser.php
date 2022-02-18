@@ -33,7 +33,7 @@ class FingerUser extends User {
 
     $this->lastUpdate = 0;
 
-    list($this->localname, $this->host) = split('@', $this->username);
+    list($this->localname, $this->host) = explode('@', $this->username);
 
     $this->load();
   }

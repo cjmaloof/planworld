@@ -20,7 +20,7 @@ $result = $dbh->query($query);
 
 $hosts = array();
 while ($row = $result->fetch(DB_FETCHMODE_ASSOC)) {
-  list($user, $host) = split('@', $row['username']);
+  list($user, $host) = explode('@', $row['username']);
   if (!in_array($host, $hosts)) $hosts[] = $host;
   if (!isset($$host)) $$host = array();
   array_push($$host, $user);

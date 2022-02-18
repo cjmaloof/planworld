@@ -64,7 +64,7 @@ class User {
       } else if (!Planworld::isUser($uid) && !strstr($uid, '@')) {
         return new User($uid);
       } else {
-        list(,$host) = split('@', $uid);
+        list(,$host) = explode('@', $uid);
         $nodeinfo = Planworld::getNodeInfo($host);
         if (empty($nodeinfo)) {
           if ($host == 'livejournal.com' || $host == 'livejournal')
@@ -251,7 +251,7 @@ class User {
       $hosts = array();
       foreach ($refs[1] as $r) {
         if (!strstr($r, '@')) continue;
-        list($user, $host) = split('@', $r);
+        list($user, $host) = explode('@', $r);
         if (!in_array($host, $hosts)) {
           $hosts[] = $host;
           Snoop::clearRemoteReferences(Planworld::getNodeInfo($host), $this->username);

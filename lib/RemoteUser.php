@@ -29,7 +29,7 @@ class RemoteUser extends User {
 
     $this->username = $uid;
 
-    list($this->localname, $this->host) = split('@', $this->username);
+    list($this->localname, $this->host) = explode('@', $this->username);
 
     if (isset($nodeinfo)) {
       $this->nodeinfo = $nodeinfo;
