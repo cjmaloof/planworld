@@ -1172,7 +1172,7 @@ class User {
       if (!$user->planwatch->inPlanwatch($this) && !isset($plan)) {
         $out .= "<tt><a href=\"" . PW_URL_BASE . "add.php?add=" . $this->username . "&amp;trans=t\" title=\"Add " . $this->username . " to my planwatch\">(Add to my planwatch)</a></tt><br />\n";
       } else if (!isset($plan)) {
-        $out .= "<tt><a href=\"" . PW_URL_BASE . "add.php?add=" . $this->username . "&amp;trans=t;remove=t\" title=\"Remove " . $this->username . " from my planwatch\">(Remove from my planwatch)</a></tt><br />\n";
+        $out .= "<tt><a href=\"" . PW_URL_BASE . "add.php?add=" . $this->username . "&amp;trans=t&amp;remove=t\" title=\"Remove " . $this->username . " from my planwatch\">(Remove from my planwatch)</a></tt><br />\n";
       }
 
       $out .= "<tt>Login name: <strong>{$this->username}</strong>";

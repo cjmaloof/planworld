@@ -75,9 +75,9 @@ class FingerUser extends User {
     function displayPlan (&$user, $plan = NULL, $ts = NULL) {
       $out = '<pre>';
       if (!$user->planwatch->inPlanwatch($this)) {
-	$out .= "<a href=\"" . PW_URL_BASE . "add.php?add=" . $this->username . ";trans=t\" title=\"Add " . $this->username . " to my planwatch\">(Add to my planwatch)</a>\n";
+	$out .= "<a href=\"" . PW_URL_BASE . "add.php?add=" . $this->username . "&amp;trans=t\" title=\"Add " . $this->username . " to my planwatch\">(Add to my planwatch)</a>\n";
       } else {
-	$out .= "<a href=\"" . PW_URL_BASE . "add.php?add=" . $this->username . ";trans=t;remove=t\" title=\"Remove " . $this->username . " from my planwatch\">(Remove from my planwatch)</a>\n";
+	$out .= "<a href=\"" . PW_URL_BASE . "add.php?add=" . $this->username . "&amp;trans=t&amp;remove=t\" title=\"Remove " . $this->username . " from my planwatch\">(Remove from my planwatch)</a>\n";
       }
 
       $plan = $this->getPlan($user);
