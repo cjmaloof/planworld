@@ -47,7 +47,7 @@ if (file_exists($_base . "layout/{$skin['id']}/themes/{$theme}/extras.inc")) {
 <tr>
 <td rowspan="2" align="left" valign="bottom">
 <br />
-<a href="<?php echo PW_URL_INDEX; ?>" title="planworld"><img src="<? echo $headerImage; ?>" alt="planworld" border="0" /></a>
+<a href="<?php echo PW_URL_INDEX; ?>" title="planworld"><img src="<?php echo $headerImage; ?>" alt="planworld" border="0" /></a>
 </td>
 <td colspan="2">&nbsp;</td>
 </tr>

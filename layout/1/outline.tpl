@@ -53,7 +53,7 @@ if (is_string($theme) && file_exists($_base . "layout/{$skin['id']}/themes/{$the
 <tr>
 <td align="left" valign="bottom">
 <br />
-<a href="<?php echo PW_URL_INDEX; ?>" title="planworld"><img src="<? echo $headerImage; ?>" alt="planworld" border="0" /></a>
+<a href="<?php echo PW_URL_INDEX; ?>" title="planworld"><img src="<?php echo $headerImage; ?>" alt="planworld" border="0" /></a>
 </td>
 <td valign="bottom" align="right">
 <input class="inputTextBox" type="text" size="12" name="id" />&nbsp;<input class="inputButton" type="submit" value="Finger" />
