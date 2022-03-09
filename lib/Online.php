@@ -65,7 +65,7 @@ class Online {
    * array Online::getOnlineUsers ()
    * Returns a list of all users who are currently online.
    */
-  function getOnlineUsers () {
+  static function getOnlineUsers () {
     $dbh = DBUtils::_connect();
 
     $query = "SELECT users.username, online.last_access, online.login, online.what FROM users, online WHERE users.id = online.uid ORDER BY last_access DESC";

@@ -40,7 +40,7 @@ define('PW_LDAP_BASE', 'dc=example, dc=com');
 define('PW_ALLOWED_TAGS', '<tt>,<font>,<b>,<strong>,<u>,<i>,<em>,<a>,<img>,<pre>,<hr>,<br>,<span>,<div>,<center>,<h1>,<h2>,<h3>,<h4>,<h5>,<h6>,<p>,<blockquote>,<ol>,<ul>,<li>,<embed>,<applet>,<style>,<q>,<dd>,<dl>,<dt>,<object>,<table>,<tr>,<td>,<param>,<noembed>,<comment>,<iframe>,<form>,<input>,<button>,<textarea>,<link>,<bgsound>,<sup>,<sub>,<strike>,<code>,<acronym>,<abbr>,<label>,<fieldset>,<address>');
 
 // reserved usernames
-define('PW_RESERVED', '|about|,|archiving|,|del_plan|,|edit_plan|,|edit_pw|,|prefs|,|random|,|stats|,|help|,|snitch|,|snoop|,|who|,|whois|,|stuff|,|widgets|last|new|');
+define('PW_RESERVED', '|about|,|archiving|,|del_plan|,|edit_plan|,|edit_pw|,|prefs|,|random|,|stats|,|help|,|snitch|,|snoop|,|tutorial|,|who|,|whois|,|stuff|,|widgets|last|new|');
 
 // token constants
 define("TOKEN_LIFE",	21600); /* Default is six hours - 6 hours * 60 minutes * 60 seconds = 21600 seconds. */
