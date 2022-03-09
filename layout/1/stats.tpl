@@ -9,7 +9,7 @@
 <strong><?php echo number_format($day_logins); ?></strong> people have logged in in the past 24 hours (<?php echo round(($day_logins / $num_users) * 100, 2); ?>%),
 <strong><?php echo number_format($week_logins); ?></strong> in the past week (<?php echo round(($week_logins / $num_users) * 100, 2); ?>%).</p>
 
-<p>Throughout planworld, there have been <strong><?php echo number_format($total_views); ?></strong> plan views. There are a total of <strong><?php echo number_format(Stats::getNumArchiveEntries()); ?></strong> archive entries (<strong><?php echo number_format(Archive::getSize($_user->getUserID())); ?></strong> of which are yours).</p>
+<p>Throughout planworld, there have been <strong><?php echo number_format($total_views); ?></strong> plan views. There are a total of <strong><?php echo number_format(Stats::getNumArchiveEntries()); ?></strong> archive entries.</p>
 <?php
 if ($total_views == 0)
   $total_views = 1;
@@ -17,5 +17,4 @@ if ($total_views == 0)
 <p>Your plan has been viewed <strong><?php echo number_format($personal_views); ?></strong> times and accounts for <strong><?php echo round(($personal_views / $total_views) * 100, 2); ?>%</strong> of the total.</p>
 
 <p>There are a total of <strong><?php echo number_format(Stats::getNumCookies()); ?></strong> cookies, <strong><?php echo number_format(Stats::getNumCookies(true)); ?></strong> of which were submitted by planworld users.</p>
-<p><img src="http://halogen.note.amherst.edu/~seth/images/pw_stats.png" align="left" alt="Usage Graph" /><img src="http://halogen.note.amherst.edu/~seth/images/pw_stats_week.png" align="left" alt="Daily Usage Graph" /><br />
-<img src="http://halogen.note.amherst.edu/~seth/images/pw_stats_month.png" align="left" alt="Weekly Usage" /></p>
+
