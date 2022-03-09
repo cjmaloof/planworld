@@ -9,7 +9,17 @@
 
 <p>Subscribe to other people you know who may be on planworld by "fingering" their username using the search box at the top-right of the page. If you find someone you'd like to follow, click "Add to my planwatch" above their username in their plan body. Once followed, they will be added to your the list of plans on the left side of your screen--your Planwatch.</p>
 
-<p>Planworld strives to be an open and inclusive community, so feel free to follow people you don't know as well! Some planworld notables include <a href="?id=rbilton10">rbilton10</a>, <a href="?id=dahardawar">dahardawar</a>, <a href="?id=cfvandijk03">cfvandijk03</a>, and <a href="?id=mppai99">mppai99</a>.</p>
+<p>Planworld strives to be an open and inclusive community, so feel free to follow people you don't know as well! The last five people who updated are: 
+<?php
+require_once($_base . "lib/Planworld.php");
+$users = Planworld::getLastUpdates(5);
+if(is_array($users) && !empty($users)) {
+	foreach($users as $entry) {
+		echo "<a href=\"" . PW_URL_INDEX . "?id=" . $entry['username'] . "\">" . $entry['username'] . "</a>, ";
+	}
+}
+?>
+and many others are updating as you read this.</p>
 
 <p>You can also organize your planwatch by clicking "Edit" to the right of the top of planwatch. Here you can add other users to your planwatch manually, and in batch groups. You can also organize your planwatch into "groups" to better organize who you're following.</p>
 <br></br>
