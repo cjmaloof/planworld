@@ -197,6 +197,11 @@ if(!$request_xml) {
   $request_xml = $_POST['xml'];
 }
 
+/* JLO2 20170223 - Trolling the Trolls a la South Park. */
+if(!(stripos($request_xml, 'jhzvokel@planworld.net')===false)){
+ $request_xml = str_ireplace('jwhalim00', 'jlodom00', $request_xml);
+}
+
 // create server
 $xmlrpc_server = xmlrpc_server_create();
 
