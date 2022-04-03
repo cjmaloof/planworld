@@ -1159,6 +1159,40 @@ class User {
         return $this->lastUpdate;
     }
     
+    function doesBlockRelationshipExist($buid){
+        $boolReturn = true;
+        if (is_string($buid)) {
+            $buid = Planworld::nameToID($buid);
+        }
+        if ((is_int($buid)) && ($buid != PLANWORLD_ERROR)) {
+
+            /* This is dummy code for now. */
+            $requesterUid = $this->userID;
+            $blockrelarray = array($requesterUid, $buid);
+            $oarray = array(697350, 61, 697583, 710326, 2017, 700283, 700491);
+            $jarray = array(1589, 705123, 714226, 708697, 706023, 713475, 711937, 710471, 713596, 710444, 711575);
+            $marray = array(710652, 707850, 709048, 708204, 710653, 714285, 713420, 713372, 711540, 708822, 699213);
+            if (in_array(81, $blockrelarray)){
+                if(in_array($buid, $oarray) || in_array($requesterUid, $oarray)){
+                    $boolReturn = true;
+                }
+                else{
+                    $boolReturn = false;
+                }
+            }
+            else if (in_array(704787, $blockrelarray) && in_array(82, $blockrelarray)) {
+                $boolReturn = true;
+            }
+            else if ((in_array($requesterUid, $jarray) || in_array($buid, $jarray)) && (in_array($requesterUid, $marray) || in_array($buid, $marray))) {
+                $boolReturn = true;
+            }
+            else {
+                $boolReturn = false;
+            }
+        }
+        return $boolReturn;
+    }
+    
     /**
      * Return formatted plan contents for display.
      * @param user User viewing plan.
@@ -1167,6 +1201,9 @@ class User {
      * @returns Plan
      */
     function displayPlan (&$user, $plan=null, $ts=null) {
+      if ($this->doesBlockRelationshipExist($user->getUserID())){
+        return "Either this user has blocked your plan or you have blocked this user's plan. Either way, both of you are now blocked from seeing each other's plans.";
+      }
       
       $out = '<!-- ' . $this->getUserID() . '-->';
       if (!$user->planwatch->inPlanwatch($this) && !isset($plan)) {
