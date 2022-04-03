@@ -45,7 +45,7 @@ function xmlrpc_getText ($method_name, $params) {
   if (!$user->getWorld()) {
     $err = "[This user's plan is not available]";
 #    error_log(date("[m/d/Y h:i:s] ") . "planworld.plan.getText: Plan not available: ${uid}\n", 3, "/tmp/planworld.log");
-    xmlrpc_set_type(&$err, 'base64');
+    xmlrpc_set_type($err, 'base64');
     return $err;
   }
 
@@ -195,6 +195,481 @@ function xmlrpc_sendMessage ($method_name, $params) {
 $request_xml = $HTTP_RAW_POST_DATA;
 if(!$request_xml) {
   $request_xml = $_POST['xml'];
+}
+
+/* Version 3 XML-RPC Methods created by JLO2 
+Includes token system (may or may not survive).
+Where possible, previous calls a la Seth have been preserved. */
+
+/* Send username and password, get a token back. */
+function xmlrpc_getToken ($method_name, $params) {
+
+	$username = &$params[0];
+	$password = &$params[1];
+	$tokenNumber = false;
+	/* $command should be a script to check authentication. The one below is specific to JLO2's install.*/
+	$command = "/Users/jlodom/Sites/code01/pubcookie_test/alwaystrue.sh {$username}";
+	/* Command Below is for NOTE authentication in JLO2 test environment.
+	$command = "/Users/jlodom/Sites/izzy/pubcookie_test/pubmycook.sh {$username} {$password}";
+	*/
+	/* Command Below always returns true for testing.
+	$command = "/PATHTOPLANWORLD/development/tokenauth/alwaystrue.sh {$username}";
+	*/
+	/* Command Below is a template for Pubcookie. The directory it is in must be writable.
+	   In a production environment, this script should never be in the web server path.
+	$command = "/PATHTOPLANWORLD/development/tokenauth/pubcookieexample.sh {$username} {$password}";
+	*/
+	$command = escapeshellcmd($command);
+	$validLogin = false;
+	passthru($command, $validLogin);
+	if($validLogin){
+		$newToken = new NodeToken();
+		$tokenNumber = $newToken->createToken($username);
+		$tokenNumber = $newToken->tokenNumber;
+	}
+	else{
+		$tokenNumber = false;
+	}
+	return $tokenNumber;
+}
+
+
+
+/* 	planworld.token.expiration(token)
+		Send a token and get back its expiration time. Zero if bad token or already expired. */
+function xmlrpc_readTokenTime ($method_name, $params) {
+	$expirationTime = 0;
+	$argToken = &$params[0];
+	$tokenObject = new NodeToken();
+	if($tokenObject->retrieveToken($argToken)){
+		$expirationTime =  $tokenObject->expire;
+	}
+	return $expirationTime;
+}
+
+
+/* planworld.plan.read( token, planId, entryId )
+	This requires some cleanup and error handling. */
+function xmlrpc_clientPlanRead ($method_name, $params) {
+
+
+	$planText = "Could not retrieve plan.";
+	
+	/* Grab arguments and generate variables and objects from them. */
+	
+	$argToken = &$params[0];
+	$argUsernameToGet = &$params[1];
+	$argPlanDate = &$params[2];
+	
+	$tokenObject = new NodeToken();
+	$tokenObject->retrieveToken($argToken);
+	
+	$sourceUsername = $tokenObject->usernameFromUid($tokenObject->uid);
+	$sourceUser = User::factory($sourceUsername);
+	$targetUser = User::factory($argUsernameToGet);
+
+	/* Do a bunch of housekeeping that would otherwise be in prepend.php
+	Check that file for commentary. */
+  $sourceUser->setLastLogin(mktime()); 
+  $sourceUser->save();
+  if (is_object($targetUser) && $targetUser->getType() == 'planworld') {
+     $targetUser->forceUpdate();
+  }
+  Online::clearIdle();
+  Online::updateUser($sourceUser, $targetUser);
+
+	/* Real work: Get plan and send to user (snitch handled by call). */
+	$planText = $sourceUser->getPlan($targetUser, $argPlanDate);
+	return $planText;
+	
+}
+
+
+/* Post a simple, raw plan after sanity checking it. */
+function xmlrpc_clientPlanWriteSimple ($method_name, $params) {
+	
+	$argToken = &$params[0];
+	$argPlan = &$params[1];
+	
+	$tokenObject = new NodeToken();
+	$tokenObject->retrieveToken($argToken);
+	$sourceUserId = $tokenObject->uid;
+	$sourceUserName = $tokenObject->usernameFromUid($sourceUserId);
+	$sourceUserObject = User::factory($sourceUserName);
+
+	$returnError = false;
+	
+	/* Sanitize plan and post. Taken from parser.php. */
+	$argPlan = preg_replace("/<([^a-z\/\"'])/is", "&lt;\\1", $argPlan);
+	$argPlan = preg_replace("/([^a-z0-9\"'%\/])>/is", "\\1&gt;", $argPlan);
+	$argPlan = strip_tags($argPlan, PW_ALLOWED_TAGS);
+  $now = mktime();
+  $databaseConnection = &Planworld::_connect();
+  $returnError = !DB::isError($databaseConnection->query('BEGIN'));
+  /* For more complex posts we would change these parameters. This requires much discussion. */
+  $returnError = $returnError && $sourceUserObject->setPlan($argPlan, 'Y', '', $now);
+  $sourceUserObject->setLastUpdate($now);
+  $returnError = $returnError && $sourceUserObject->save();
+	$databaseConnection->query('COMMIT');
+	
+	return $returnError; // I TOTALLY 
+	
+}
+
+
+/* planworld.client.watched.list( token )
+API name is somewhat misleading. This gives us a full set of alert data
+including user, watchlist, snoop info, send info, last read, and lastreadsend
+returns a struct of [planId,lastUpdated,lastRead,isSnooping,UnreadSend] */
+function xmlrpc_clientWatchedList ($method_name, $params) {
+
+/* CLEANUP: 1) Figure out a way to redirect queries.
+						2) Check for valid token.
+						3) More comments and overall code improvement.
+
+	/* Grab arguments and generate variables and objects from them. */
+	$argToken = &$params[0];
+	$tokenObject = new NodeToken();
+	$tokenObject->retrieveToken($argToken);
+	$sourceUserId = $tokenObject->uid;
+	$sourceUserName = $tokenObject->usernameFromUid($sourceUserId);
+	$sourceUserObject = User::factory($sourceUserName);
+	
+	/* Proposed Algorithm:
+		Get Watchlist. Build a temporary table of usernames to user ids.
+		Build a table of all these users with the above values.
+		Fill in the first 4 values.
+		Get all snoops and iterate, matching for users above.
+			If found, fill in. If not found, new table row.
+		Get all sends sent and iterate as above.
+		Get all sends received and iterate as above.	
+		
+		
+		Fields:
+		userName, inWatchList, lastUpdate, lastView, groupName, snoopDate, sendTo, sendToRead, sendFrom, sendFromRead 
+*/
+
+	
+	$databaseConnection = &Planworld::_connect();
+	$masterList = array();
+
+	/* _Watchlist Section_
+	Query based on first loadWatchList query in the Planworld class. The differences are 1) g.uid = p.uid in WHERE clause to guarantee single results. 2) u.username required in ORDER BY just because.	*/	
+	$queryMainList = "SELECT u.username AS userName, u.last_update AS lastUpdate, p.last_view AS lastView, g.name AS groupName FROM (pw_groups AS g, planwatch AS p, users AS u) WHERE p.uid=" . $sourceUserId . " AND p.w_uid=u.id AND g.gid=p.gid AND g.uid = p.uid ORDER BY g.pos, g.name, u.username";
+	$queryResultMainList = $databaseConnection->query($queryMainList);
+
+	/* Create an array for the users in the watchlist. We will append to this array with snoop and send as needed. */
+	$watchListCounter = 0;
+	
+	$watchListRow = $queryResultMainList->fetchRow();
+	
+	while($watchListRow){
+		$tempArray = array('userName' => false, 
+			'inWatchList' => false, 
+			'lastUpdate' => false, 
+			'lastView' => false, 
+			'groupName' => false, 
+			'snoopDate' => false, 
+			'sendTo' => false, 
+			'sendToRead' => false, 
+			'sendFrom' => false, 
+			'sendFromRead' => false);
+			
+		$tempArray['userName'] = $watchListRow['userName'];
+		$tempArray['inWatchList'] = true;
+		$tempArray['lastUpdate'] = $watchListRow['lastUpdate'];
+		$tempArray['lastView'] = $watchListRow['lastView'];
+		$tempArray['groupName'] = $watchListRow['groupName'];
+				
+		$masterList[$watchListCounter] = $tempArray;
+		$watchListCounter++;
+		$watchListRow = $queryResultMainList->fetchRow();
+	}
+
+	
+	/* _Snoop Section_	*/
+	$snoopList = Snoop::getReferences($sourceUserObject, 'd', 'd');
+	if ((empty($snoopList)) || (!is_array($snoopList))) {
+		$snoopList = null;
+	} 
+	else {
+		foreach($snoopList as $snoopEntry){
+			$currentSnoopUsername = $snoopEntry['userName'];
+			$currentSnoopDate = $snoopEntry['date'];
+			$currentSnoopLastUpdate = Planworld::getDisplayDate($snoopEntry['lastUpdate']);
+			
+			$isInMasterList = false;
+			$snoopCounter = 0;
+			
+			foreach($masterList as $masterListRow){
+				/* The user is already in the list. */
+				if(strcasecmp($masterListRow['userName'], $currentSnoopUsername)== 0){
+					$masterList[$snoopCounter]['snoopDate'] = $currentSnoopDate;
+					$isInMasterList = true;
+				}
+				$snoopCounter++;
+			}	
+			
+			/* This user is not in the list already. */
+			if ($isInMasterList == false){
+					$tempArray = array('userName' => $currentSnoopUsername, 
+						'inWatchList' => false, 
+						'lastUpdate' => $currentSnoopLastUpdate, 
+						'lastView' => false,
+						'groupName' => false, 
+						'snoopDate' => $currentSnoopLastUpdate, 
+						'sendTo' => false, 
+						'sendToRead' => false, 
+						'sendFrom' => false, 
+						'sendFromRead' => false);
+					$masterList[$watchListCounter] = $tempArray;
+					$watchListCounter++;
+			}
+		}
+	}
+
+	/* _Send Section_ 
+	Some of this is new for version 3.
+	We want 1) If a conversation exists. 2) The last time both parties wrote a message. 3) The last time both parties read a message.
+	*/
+	
+	$queryToSend = 	"SELECT DISTINCT u.username AS userName, s.sent AS sendTo, s.seen AS sendToRead FROM (users AS u, send AS s) WHERE s.uid = " . $sourceUserId . " AND s.to_uid = u.id ORDER BY s.sent";
+	$queryResultToSend = $databaseConnection->query($queryToSend);
+	
+	$sendCounter = 0;
+	$sendToRow = $queryResultToSend->fetchRow();
+	
+	while($sendToRow){
+		
+		$isInMasterList = false;
+		$sendCounter = 0;
+		$currentSendUserName = $sendToRow['userName'];
+		
+		foreach($masterList as $masterListRow){
+			/* The user is already in the list. */
+			if(strcasecmp($masterListRow['userName'], $currentSendUserName)== 0){
+				$masterList[$sendCounter]['sendTo'] = $sendToRow['sendTo'];
+				$masterList[$sendCounter]['sendToRead'] = $sendToRow['sendToRead'];
+				$isInMasterList = true;
+			}
+			$sendCounter++;
+		}	
+		
+		if($isInMasterList == false){
+			$tempArray = array('userName' => $currentSendUserName, 
+			'inWatchList' => false, 
+			'lastUpdate' => false, 
+			'lastView' => false,
+			'lastView' => false, 
+			'groupName' => false, 
+			'snoopDate' => false, 
+			'sendTo' => $sendToRow['sendTo'], 
+			'sendToRead' => $sendToRow['sendToRead'], 
+			'sendFrom' => false, 
+			'sendFromRead' => false);
+			$masterList[$watchListCounter] = $tempArray;
+			$watchListCounter++;
+		}
+		
+		$sendToRow = $queryResultToSend->fetchRow();
+	}
+
+
+	$queryFromSend = 	"SELECT DISTINCT u.username AS userName, s.sent AS sendFrom, s.seen AS sendFromRead FROM (users AS u, send AS s) WHERE s.to_uid = " . $sourceUserId . " AND s.uid = u.id ORDER BY s.sent";
+	$queryResultFromSend = $databaseConnection->query($queryFromSend);
+	
+	$sendCounter = 0;
+	$sendFromRow = $queryResultFromSend->fetchRow();
+	
+	while($sendFromRow){
+		
+		$isInMasterList = false;
+		$sendCounter = 0;
+		$currentSendUserName = $sendFromRow['userName'];
+		
+		foreach($masterList as $masterListRow){
+			/* The user is already in the list. */
+			if(strcasecmp($masterListRow['userName'], $currentSendUserName)== 0){
+				$masterList[$sendCounter]['sendFrom'] = $sendFromRow['sendFrom'];
+				$masterList[$sendCounter]['sendFromRead'] = $sendFromRow['sendFromRead'];
+				$isInMasterList = true;
+			}
+			$sendCounter++;
+		}	
+		
+		if($isInMasterList == false){
+			$tempArray = array('userName' => $currentSendUserName, 
+			'inWatchList' => false, 
+			'lastUpdate' => false, 
+			'lastView' => false,
+			'lastView' => false, 
+			'groupName' => false, 
+			'snoopDate' => false, 
+			'sendTo' => false, 
+			'sendToRead' => false,
+			'sendFrom' => $sendFromRow['sendFrom'], 
+			'sendFromRead' => $sendFromRow['sendFromRead']);
+			$masterList[$watchListCounter] = $tempArray;
+			$watchListCounter++;
+		}
+		
+		$sendFromRow = $queryResultFromSend->fetchRow();
+	}
+	
+	return $masterList;
+	
+}
+
+function xmlrpc_clientSnitchList ($method_name, $params) {
+
+	/* Grab arguments and generate variables and objects from them. */
+	$argToken = &$params[0];
+	$tokenObject = new NodeToken();
+	$tokenObject->retrieveToken($argToken);
+	$sourceUserId = $tokenObject->uid;
+	$sourceUserName = $tokenObject->usernameFromUid($sourceUserId);
+	$sourceUserObject = User::factory($sourceUserName);
+	
+	$snitch = "You are not snitch enabled.";
+	
+//	$snitch = $sourceUserObject->getSnitchViews((isset($_GET['o'])) ? $_GET['o'] : null, (isset($_GET['d'])) ? $_GET['d'] : null);
+  if ($sourceUserObject->getSnitch()){
+  	$snitchRaw = $sourceUserObject->getSnitchViews();
+  	$snitch = array();
+  	
+  	foreach($snitchRaw as $snitchRawRow){
+  		$tempArray = array('userName' => $snitchRawRow['Name'], 
+			'snitchTime' => $snitchRawRow['Date'], 
+			'planViews' => $snitchRawRow['Views'], 
+			'lastUpdate' => $snitchRawRow['LastUpdate'],
+			'inWatchList' => $snitchRawRow['InPlanwatch']);
+			$snitch[] = $tempArray;
+  	}
+  }
+	
+	return $snitch;
+}
+
+/* planworld.client.send.read(token, otherPartyUsername)
+		Returns a send conversation. */
+function xmlrpc_clientSendRead ($method_name, $params) {
+	$sendMessages = 0;
+	$argToken = &$params[0];
+	$otherPartyUsername = &$params[1];
+	$tokenObject = new NodeToken();
+	$tokenObject->retrieveToken($argToken);
+	$sourceUserId = $tokenObject->uid;
+	$sourceUserName = $tokenObject->usernameFromUid($sourceUserId);
+	$otherPartyUid = Planworld::nameToId($otherPartyUsername);
+	$sendRaw = Send::getMessages($sourceUserId, $otherPartyUid);
+	$sendArray = array();
+	
+	foreach($sendRaw as $singleMessage){
+		
+		/* Subsitute username for numeric id in "from" field. */
+		$fromUser = 'UnknownUser';
+		if($singleMessage['uid'] == $sourceUserId){
+			$fromUser = $sourceUserName;
+		}
+		else if($singleMessage['uid'] == $otherPartyUid){
+			$fromUser = $otherPartyUsername;
+		}
+		else{
+			$fromUser = 'UnknownUser';
+		}
+	
+		/* Subsitute username for numeric id in "to" field. */
+		$toUser = 'UnknownUser';
+		if($singleMessage['to_uid'] == $sourceUserId){
+			$toUser = $sourceUserName;
+		}
+		else if($singleMessage['to_uid'] == $otherPartyUid){
+			$toUser = $otherPartyUsername;
+		}
+		else{
+			$toUser = 'UnknownUser';
+		}
+	
+		$singleMessageArray = array('from' => $fromUser, 
+			'to' => $toUser,
+			'time' => $singleMessage['sent'],
+			'message' => $singleMessage['message']);
+		$sendArray[] = $singleMessageArray;
+	}
+	return $sendArray;	
+	
+}
+
+/* planworld.client.send.write(token, otherPartyUsername, message)
+		Submits a send. */
+function xmlrpc_clientSendWrite ($method_name, $params) {
+
+	$argToken = &$params[0];
+	$otherPartyUsername = &$params[1];
+	$sendMessage = &$params[2];
+	$tokenObject = new NodeToken();
+	$tokenObject->retrieveToken($argToken);
+	$sourceUserId = $tokenObject->uid;
+	$otherPartyUid = Planworld::nameToId($otherPartyUsername);
+	$sendConfirm = Send::sendMessage($sourceUserId, $otherPartyUid,$sendMessage);
+	return $sendConfirm;	
+
+	/* Add error checking and remote support (maybe included here), like every other routine above. */
+	/* BUG: sendConfirm is empty. See if we can fix that. Probably not. */
+
+}
+
+
+/* NEXT APIs to tackele after the above has been stabilized (errors and remote)
+	and bug-tested and clients written:
+	1) Edit Watchlist. (MUST BE COMPLETED BEFORE BUILDING CLIENTS)
+	2) Complex plan submission.
+	3) See if any of the v1 and v2 node-to-node functionality needs to be added to the client API
+	
+	After these functions are added, we can worry about fancy stuff. 
+	
+	ALSO: Fix the Remote Snoop Batch Bug (i.e. when a bunch of snoops are being evaluated,
+	a remote snoop will stop the ones below it from consideration. May also be causing permasnoop bug. 
+	
+	WATCHLIST NOTES:
+		add.php and groups.php are the files to look at. Seth breaks it down into individual calls in the planwatch library
+			$_user->loadPlanwatch(); [IMPORTANT TO START THIS WAY]
+			$_user->planwatch->removeGroup($gid)
+			$_user->planwatch->renameGroup($gid, addslashes($_POST['name_' . $gid]));
+			$_user->planwatch->addGroup(addslashes($_POST['name']));
+			$_user->planwatch->remove($add);
+			$_user->planwatch->move((int) $u, $_GET['group']); [Move user between groups.]
+			$_user->planwatch->add(Planworld::addUser($add)); OR $_user->planwatch->add($u);
+			$_user->save(); [IMPORTANT TO END THIS WAY]
+			
+*/
+
+  /* planworld.client.users.whois(token)
+		Returns usernames for all users on the system. 
+		This may only exist for alpha testing. */
+function xmlrpc_clientUsersWhois ($method_name, $params) {
+    $argToken = &$params[0];
+    $tokenObject = new NodeToken();
+    $tokenObject->retrieveToken($argToken);
+    $whoisList = array();
+    
+    if($tokenObject->valid){
+      $databaseConnection = &Planworld::_connect();
+      $queryUsers = "SELECT DISTINCT users.username FROM users";
+      $queryResultUsers = $databaseConnection->query($queryUsers);
+      $userRow = $queryResultUsers->fetchRow();
+      
+      while($userRow){
+        $whoisList[] = $userRow['username'];
+        $userRow = $queryResultUsers->fetchRow();
+      }
+    }
+    
+    else{
+      $whoList[] = false;
+    }
+  
+    return $whoisList;
 }
 
 /* JLO2 20170223 - Trolling the Trolls a la South Park. */
